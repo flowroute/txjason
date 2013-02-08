@@ -59,7 +59,7 @@ from txjason.netstring.protocol import Proxy
 
 proxy = Proxy('127.0.0.1', 7080)
 
-d = proxy.calRemote('main.echo', 'foo')
+d = proxy.callRemote('main.echo', 'foo')
 d.addBoth(someFunction)
 ```
 
