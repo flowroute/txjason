@@ -1,3 +1,4 @@
+import traceback
 from twisted.internet import defer, reactor
 from twisted.protocols.basic import NetstringReceiver
 from twisted.python import log
@@ -15,10 +16,23 @@ class ClientProtocol(BaseProtocol):
         self.factory = factory
 
     def stringReceived(self, string):
-        self.factory.proxy.client.handleResponse(string)
+        try:
+            self.factory.proxy.client.handleResponse(string)
+        except client.JSONRPCProtocolError as e:
+            traceback.format_exc()
+            self.transport.loseConnection()
+        except:
+            traceback.format_exc()
 
     def connectionMade(self):
         self.factory.proxy.connectionMade()
+
+    def connectionLost(self, reason): 
+        if self.brokenPeer:
+            log.msg('Disconencted from server because of a broken peer.')
+        else:
+            log.msg('Lost server connection.')
+        self.factory.proxy.connectionLost()
 
 
 class ServerProtocol(BaseProtocol):
@@ -40,9 +54,6 @@ class ClientFactory(protocol.BaseClientFactory):
         self.connection = ClientProtocol(self)
         return self.connection
 
-    def clientConnectionLost(self, _, reason):
-        self.proxy.connectionLost()
-
 
 class ServerFactory(protocol.BaseServerFactory):
     protocol = ServerProtocol
@@ -55,11 +66,16 @@ class Proxy(object):
         self.port = port
         self.connecting = False
         self.connected = False
+        self.closing = False
         self.factory = None
 
     def connect(self):
-        if self.connected or self.connecting:
+        if self.connected:
             return defer.succeed(None)
+        elif self.connecting:
+            return self.connecting
+        if self.closing:
+            return self.closing.addCallback(lambda x: self.connect())
         self.connecting = defer.Deferred()
         self.factory = ClientFactory(self)
         reactor.connectTCP(self.host, self.port, self.factory)
@@ -71,9 +87,12 @@ class Proxy(object):
         self.connected = True
 
     def connectionLost(self):
-        self.client.cancelRequests()
+        d = self.closing = defer.Deferred()
         self.connected = False
         self.factory = None
+        self.client.cancelRequests()
+        self.closing = False
+        d.callback(None)
 
     @defer.inlineCallbacks
     def callRemote(self, method, *args, **kwargs):
