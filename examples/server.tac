@@ -8,13 +8,13 @@ class Example(handler.Handler):
     def __init__(self, who):
         self.who = who
 
-    @handler.exportRPC("add2")
+    @handler.exportRPC("add")
     @defer.inlineCallbacks
-    def add(self, x, y):
+    def _add(self, x, y):
         yield
         defer.returnValue(x+y)
 
-    @handler.exportRPC("whoami")
+    @handler.exportRPC()
     def whoami(self):
         return self.who
 

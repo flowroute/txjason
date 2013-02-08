@@ -1,0 +1,5 @@
+To run the examples in this directory:
+
+	* Run 'make' from the main project directory.
+    * In one shell run ./bin/twisted -noy examples/server.tac
+    * In another shell run ./bin/python examples/client.py
