@@ -1,7 +1,7 @@
 import json
 from twisted.internet import defer
 from twisted.trial import unittest
-from txjsonrpc2 import service
+from txjason import service
 
 
 def subtract(minuend, subtrahend):

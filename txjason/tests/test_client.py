@@ -1,7 +1,7 @@
 import json
 from twisted.internet import defer, task
 from twisted.trial import unittest
-from txjsonrpc2 import client
+from txjason import client
 
 
 clock = task.Clock()

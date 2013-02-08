@@ -1,7 +1,7 @@
 from twisted.internet import defer
 from twisted.application import service, internet
-from txjsonrpc2.netstring import protocol
-from txjsonrpc2 import handler
+from txjason.netstring import protocol
+from txjason import handler
 
 
 class Example(handler.Handler):

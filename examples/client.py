@@ -1,8 +1,8 @@
 import os
 import sys
 from twisted.internet import reactor, defer
-from txjsonrpc2.netstring.protocol import Proxy
-from txjsonrpc2.client import JSONRPCClientError
+from txjason.netstring.protocol import Proxy
+from txjason.client import JSONRPCClientError
 
 
 proxy = Proxy('127.0.0.1', 7080)

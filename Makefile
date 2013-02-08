@@ -13,5 +13,5 @@ clean:
 tests: unittests
 
 unittests:
-	rm txjsonrpc2/tests/*.pyc; :
-	bin/trial txjsonrpc2.tests
+	rm txjason/tests/*.pyc; :
+	bin/trial txjason.tests
