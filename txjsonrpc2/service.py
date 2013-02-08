@@ -36,6 +36,7 @@ Features:
 
 Notes:
 - Modified by Matthew Williams for use with Twisted.
+- Original project at https://bitbucket.org/rsyring/jsonrpcbase
 
 Example:
 
