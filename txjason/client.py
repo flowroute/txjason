@@ -67,7 +67,7 @@ class JSONRPCClient(object):
         elif 'error' in response:
             deferred.errback(JSONRPCClientError(response['error']))
         else:
-            deferred.errback(JSONRPCProtocolError('No result or error in response:\n%s' % payload))
+            raise JSONRPCProtocolError('No result or error in response:\n%s' % payload)
         del self.requests[id]
 
     def _getPayload(self, method, id, *args, **kwargs):

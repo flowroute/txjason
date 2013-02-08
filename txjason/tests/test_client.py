@@ -71,16 +71,23 @@ class ClientTestCase(unittest.TestCase):
 
     def test_no_id(self):
         response = {'jsonrpc': '2.0', 'result': 'bar'}
-        self.assertRaises(client.JSONRPCClientError, self.client.handleResponse, json.dumps(response))
+        self.assertRaises(client.JSONRPCProtocolError, self.client.handleResponse, json.dumps(response))
 
     def test_bad_version(self):
         response = {'jsonrpc': '3.0', 'id': 1, 'result': 'bar'}
-        self.assertRaises(client.JSONRPCClientError, self.client.handleResponse, json.dumps(response))
+        self.assertRaises(client.JSONRPCProtocolError, self.client.handleResponse, json.dumps(response))
 
     def test_no_version(self):
         response = {'id': 1, 'result': 'bar'}
+        self.assertRaises(client.JSONRPCProtocolError, self.client.handleResponse, json.dumps(response))
+
+    def test_request_not_found(self):
+        response = {'jsonrpc': '2.0', 'id': 999, 'result': 'bar'}
         self.assertRaises(client.JSONRPCClientError, self.client.handleResponse, json.dumps(response))
 
     def test_no_result(self):
+        payload, d = self.client.getRequest('foo')
         response = {'jsonrpc': '2.0', 'id': 1}
-        self.assertRaises(client.JSONRPCClientError, self.client.handleResponse, json.dumps(response))
+        self.assertRaises(client.JSONRPCProtocolError, self.client.handleResponse, json.dumps(response))
+
+
