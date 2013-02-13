@@ -6,6 +6,10 @@ class JSONRPCClientError(Exception):
     pass
 
 
+class JSONRPCProtocolError(Exception):
+    pass
+
+
 class JSONRPCClient(object): 
     def __init__(self, timeout=5, reactor=reactor): 
         self.requests = {}
@@ -14,7 +18,7 @@ class JSONRPCClient(object):
         self.reactor = reactor
 
     def _next_id(self):
-        if self.id > 10000:
+        if self.id > 1000000:
             self.id = 1
         else:
             self.id = self.id +1
@@ -47,13 +51,13 @@ class JSONRPCClient(object):
         try:
             response = json.loads(payload)
         except ValueError:
-            raise JSONRPCClientError('server response is not valid json:\n%s' % payload)
+            raise JSONRPCProtocolError('server response is not valid json:\n%s' % payload)
         if 'jsonrpc' not in response or response['jsonrpc'] != '2.0':
-            raise JSONRPCClientError('not a valid jsonrpc response (no version):\n%s' % payload)
+            raise JSONRPCProtocolError('not a valid jsonrpc response (no version):\n%s' % payload)
         try:
             id = response['id']
         except KeyError:
-            raise JSONRPCClientError('not a valid jsonrpc response (no id):\n%s' % payload)
+            raise JSONRPCProtocolError('not a valid jsonrpc response (no id):\n%s' % payload)
         try:
             deferred = self.requests[id]
         except KeyError:
@@ -63,7 +67,7 @@ class JSONRPCClient(object):
         elif 'error' in response:
             deferred.errback(JSONRPCClientError(response['error']))
         else:
-            deferred.errback(JSONRPCClientError('No result or error in response:\n%s' % payload))
+            raise JSONRPCProtocolError('No result or error in response:\n%s' % payload)
         del self.requests[id]
 
     def _getPayload(self, method, id, *args, **kwargs):
