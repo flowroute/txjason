@@ -6,9 +6,7 @@ import netstring
 
 
 class BaseProtocol(NetstringReceiver):
-    def write(self, string):
-         self.transport.write(netstring.dumps(string))
-
+    pass
 
 class ClientProtocol(BaseProtocol):
     def __init__(self, factory):
@@ -29,7 +27,7 @@ class ServerProtocol(BaseProtocol):
     def stringReceived(self, string):
         result = yield self.service.call(string)
         if result is not None:
-             self.write(result)
+             self.sendString(result)
 
 
 class ClientFactory(protocol.BaseClientFactory):
@@ -79,7 +77,7 @@ class Proxy(object):
     def callRemote(self, method, *args, **kwargs):
         payload, d = self.client.getRequest(method, *args, **kwargs)
         yield self.connect()
-        self.factory.connection.write(payload)
+        self.factory.connection.sendString(payload)
         result = yield d
         defer.returnValue(result)
 
@@ -87,4 +85,4 @@ class Proxy(object):
     def notifyRemote(self, method, *args, **kwargs):
         payload = self.client.getNotification(method, *args, **kwargs)
         yield self.connect()
-        self.factory.connection.write(payload)
+        self.factory.connection.sendString(payload)
