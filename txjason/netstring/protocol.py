@@ -8,28 +8,29 @@ from txjason import protocol, client
 class BaseProtocol(NetstringReceiver):
     pass
 
+
 class ClientProtocol(BaseProtocol):
     def __init__(self, factory):
         self.factory = factory
 
     def stringReceived(self, string):
         try:
-            self.factory.proxy.client.handleResponse(string)
+            self.factory.client.handleResponse(string)
         except client.JSONRPCProtocolError as e:
             traceback.format_exc()
             self.transport.loseConnection()
         except:
-            traceback.format_exc()
+            log.err()
 
     def connectionMade(self):
-        self.factory.proxy.connectionMade()
+        self.factory.connectionMade()
 
     def connectionLost(self, reason): 
         if self.brokenPeer:
             log.msg('Disconencted from server because of a broken peer.')
         else:
             log.msg('Lost server connection.')
-        self.factory.proxy.connectionLost()
+        self.factory.connectionLost()
 
 
 class ServerProtocol(BaseProtocol):
@@ -43,20 +44,7 @@ class ServerProtocol(BaseProtocol):
              self.sendString(result)
 
 
-class ClientFactory(protocol.BaseClientFactory):
-    def __init__(self, proxy):
-        self.proxy = proxy
-
-    def buildProtocol(self, addr):
-        self.connection = ClientProtocol(self)
-        return self.connection
-
-
-class ServerFactory(protocol.BaseServerFactory):
-    protocol = ServerProtocol
-
-
-class Proxy(object):
+class Proxy(protocol.BaseClientFactory):
     def __init__(self, host, port, timeout=5):
         self.client = client.JSONRPCClient(timeout=timeout)
         self.host = host
@@ -64,9 +52,12 @@ class Proxy(object):
         self.connecting = False
         self.connected = False
         self.closing = False
-        self.factory = None
 
-    def connect(self):
+    def buildProtocol(self, addr):
+        self.connection = ClientProtocol(self)
+        return self.connection
+
+    def connect(self): 
         if self.connected:
             return defer.succeed(None)
         elif self.connecting:
@@ -74,8 +65,7 @@ class Proxy(object):
         if self.closing:
             return self.closing.addCallback(lambda x: self.connect())
         self.connecting = defer.Deferred()
-        self.factory = ClientFactory(self)
-        reactor.connectTCP(self.host, self.port, self.factory)
+        reactor.connectTCP(self.host, self.port, self)
         return self.connecting
 
     def connectionMade(self):
@@ -86,7 +76,6 @@ class Proxy(object):
     def connectionLost(self):
         d = self.closing = defer.Deferred()
         self.connected = False
-        self.factory = None
         self.client.cancelRequests()
         self.closing = False
         d.callback(None)
@@ -95,7 +84,7 @@ class Proxy(object):
     def callRemote(self, method, *args, **kwargs):
         payload, d = self.client.getRequest(method, *args, **kwargs)
         yield self.connect()
-        self.factory.connection.sendString(payload)
+        self.connection.sendString(payload)
         result = yield d
         defer.returnValue(result)
 
@@ -103,4 +92,10 @@ class Proxy(object):
     def notifyRemote(self, method, *args, **kwargs):
         payload = self.client.getNotification(method, *args, **kwargs)
         yield self.connect()
-        self.factory.connection.sendString(payload)
+        self.connection.sendString(payload)
+
+
+class ServerFactory(protocol.BaseServerFactory):
+    protocol = ServerProtocol
+
+
