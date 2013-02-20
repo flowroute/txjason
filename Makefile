@@ -1,8 +1,8 @@
 all: bootstrap buildout
 
 bootstrap:
-	virtualenv ve
-	ve/bin/python bootstrap.py
+	if [ ! -d ve ]; then virtualenv ve; fi
+	if [ ! -f bin/python ]; then ve/bin/python bootstrap.py; fi
 
 buildout:
 	bin/buildout -N
