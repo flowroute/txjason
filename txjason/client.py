@@ -10,8 +10,8 @@ class JSONRPCProtocolError(Exception):
     pass
 
 
-class JSONRPCClient(object): 
-    def __init__(self, timeout=5, reactor=reactor): 
+class JSONRPCClient(object):
+    def __init__(self, timeout=5, reactor=reactor):
         self.requests = {}
         self.id = 0
         self.timeout = timeout

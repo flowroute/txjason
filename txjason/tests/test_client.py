@@ -89,5 +89,3 @@ class ClientTestCase(unittest.TestCase):
         payload, d = self.client.getRequest('foo')
         response = {'jsonrpc': '2.0', 'id': 1}
         self.assertRaises(client.JSONRPCProtocolError, self.client.handleResponse, json.dumps(response))
-
-

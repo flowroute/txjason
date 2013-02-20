@@ -15,7 +15,9 @@ class exportRPC(object):
 
 
 class Handler(object):
-    def addToService(self, service, namespace=[], seperator='.'):
+    def addToService(self, service, namespace=None, seperator='.'):
+        if namespace is None:
+            namespace = []
         if isinstance(namespace, basestring):
             namespace = [namespace]
 

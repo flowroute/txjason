@@ -1,5 +1,3 @@
-import os
-import sys
 from twisted.internet import reactor, defer
 from txjason.netstring.protocol import Proxy
 from txjason.client import JSONRPCClientError

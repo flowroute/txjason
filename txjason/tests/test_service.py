@@ -16,7 +16,7 @@ def deferred_echo(x):
     return defer.succeed(x)
 
 
-class ServiceTestCase(unittest.TestCase): 
+class ServiceTestCase(unittest.TestCase):
     def setUp(self):
         self.service = service.JSONRPCService()
         self.service.add(subtract)

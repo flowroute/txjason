@@ -1,4 +1,3 @@
-import traceback
 from twisted.internet import defer, reactor
 from twisted.protocols.basic import NetstringReceiver
 from twisted.python import log

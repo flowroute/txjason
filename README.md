@@ -24,18 +24,18 @@ Server Usage
 Define a factory and handler, and add the handler to the factory:
 
 ```python
-from twisted.internet import deferred
+from twisted.internet import defer
 from txjason import handler
 from txjason.netstring import protocol
 
 
 class Example(handler.Handler):
-    #export the echo2 method as 'echo'
+    # export the echo2 method as 'echo'
     @handler.exportRPC('echo')
     def echo2(self, param):
         return param
 
-    #exported methods may return a deferred
+    # exported methods may return a deferred
     @handler.exportRPC()
     def deferred_echo(self, param):
         return defer.succeed(param)

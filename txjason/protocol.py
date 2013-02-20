@@ -10,7 +10,7 @@ class BaseServerFactory(protocol.ServerFactory):
     def buildProtocol(self, addr):
         return self.protocol(self.service)
 
-    def addHandler(self, handler, namespace=[]):
+    def addHandler(self, handler, namespace=None):
         handler.addToService(self.service, namespace=namespace, seperator=self.seperator)
 
 

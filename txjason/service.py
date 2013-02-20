@@ -77,12 +77,9 @@ Example:
         # Send back results.
         my_socket.send(result)
 """
-import traceback
-import sys
 import logging
 import types
 import json
-#from functools import wraps
 from twisted.internet import defer
 
 
@@ -278,7 +275,7 @@ class JSONRPCService(object):
         # account for "self" getting passed to class instance methods
         if isinstance(f, types.MethodType):
             argcount -= 1
-            
+
         if f.func_defaults is None:
             return argcount
 
@@ -501,7 +498,7 @@ class JSONRPCError(Exception):
 # for future use
 #===============================================================================
 
-class ParseError(JSONRPCError): 
+class ParseError(JSONRPCError):
     """Invalid JSON. An error occurred on the server while parsing the JSON text."""
     code = -32700
     message = 'Parse error'
