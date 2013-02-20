@@ -17,7 +17,7 @@ class ClientProtocol(BaseProtocol):
         try:
             self.factory.client.handleResponse(string)
         except client.JSONRPCProtocolError as e:
-            traceback.format_exc()
+            log.err()
             self.transport.loseConnection()
         except:
             log.err()
@@ -25,7 +25,7 @@ class ClientProtocol(BaseProtocol):
     def connectionMade(self):
         self.factory.connectionMade()
 
-    def connectionLost(self, reason): 
+    def connectionLost(self, reason):
         if self.brokenPeer:
             log.msg('Disconencted from server because of a broken peer.')
         else:
@@ -45,19 +45,20 @@ class ServerProtocol(BaseProtocol):
 
 
 class Proxy(protocol.BaseClientFactory):
-    def __init__(self, host, port, timeout=5):
+    def __init__(self, host, port, timeout=5, _reactor=reactor):
         self.client = client.JSONRPCClient(timeout=timeout)
         self.host = host
         self.port = port
         self.connecting = False
         self.connected = False
         self.closing = False
+        self.reactor = _reactor
 
     def buildProtocol(self, addr):
         self.connection = ClientProtocol(self)
         return self.connection
 
-    def connect(self): 
+    def connect(self):
         if self.connected:
             return defer.succeed(None)
         elif self.connecting:
@@ -65,7 +66,7 @@ class Proxy(protocol.BaseClientFactory):
         if self.closing:
             return self.closing.addCallback(lambda x: self.connect())
         self.connecting = defer.Deferred()
-        reactor.connectTCP(self.host, self.port, self)
+        self.reactor.connectTCP(self.host, self.port, self)
         return self.connecting
 
     def connectionMade(self):
