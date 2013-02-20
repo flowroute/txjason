@@ -77,15 +77,16 @@ Example:
         # Send back results.
         my_socket.send(result)
 """
-import logging
+import traceback
+import sys
 import types
 import json
 from twisted.internet import defer
+from twisted.python import log
 
 
 DEFAULT_JSONRPC = '2.0'
 
-log = logging.getLogger(__name__)
 
 class JSONRPCService(object):
     """
@@ -401,8 +402,9 @@ class JSONRPCService(object):
         except TypeError:
             raise InvalidParamsError()
         except Exception as e:
-            log.exception('method %s threw an exception' % request['method'])
             # Exception was raised inside the method.
+            log.msg('Exception raised while invoking RPC method "%s".' % request['method'])
+            log.err()
             raise ServerError
 
         defer.returnValue(result)
