@@ -1,6 +1,6 @@
 from twisted.internet import defer
 from twisted.application import service, internet
-from txjason.netstring import protocol
+from txjason.netstring import JSONRPCServerFactory
 from txjason import handler
 
 
@@ -19,7 +19,7 @@ class Example(handler.Handler):
         return self.who
 
 
-factory = protocol.ServerFactory()
+factory = JSONRPCServerFactory()
 factory.addHandler(Example('foo'), namespace='bar')
 
 application = service.Application("Example JSON-RPC Server")

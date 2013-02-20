@@ -26,7 +26,7 @@ Define a factory and handler, and add the handler to the factory:
 ```python
 from twisted.internet import defer
 from txjason import handler
-from txjason.netstring import protocol
+from txjason.netstring import JSONRPCServerFactory
 
 
 class Example(handler.Handler):
@@ -40,7 +40,7 @@ class Example(handler.Handler):
     def deferred_echo(self, param):
         return defer.succeed(param)
 
-factory = protocol.ServerFactory()
+factory = JSONRPCServerFactory()
 factory.addHandler(Example(), namespace='main')
 ```
 
@@ -54,12 +54,12 @@ Client Usage
 Assuming the reactor is running:
 
 ```python
-from txjason.netstring.protocol import Proxy
+from txjason.netstring import JSONRPCClientFactory
 
 
-proxy = Proxy('127.0.0.1', 7080)
+client = JSONRPCClientFactory('127.0.0.1', 7080)
 
-d = proxy.callRemote('main.echo', 'foo')
+d = client.callRemote('main.echo', 'foo')
 d.addBoth(someFunction)
 ```
 

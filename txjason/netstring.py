@@ -4,11 +4,7 @@ from twisted.python import log
 from txjason import protocol, client
 
 
-class BaseProtocol(NetstringReceiver):
-    pass
-
-
-class ClientProtocol(BaseProtocol):
+class JSONRPCClientProtocol(NetstringReceiver):
     def __init__(self, factory):
         self.factory = factory
 
@@ -32,7 +28,7 @@ class ClientProtocol(BaseProtocol):
         self.factory.connectionLost()
 
 
-class ServerProtocol(BaseProtocol):
+class JSONRPCServerProtocol(NetstringReceiver):
     def __init__(self, service):
          self.service = service
 
@@ -43,7 +39,7 @@ class ServerProtocol(BaseProtocol):
              self.sendString(result)
 
 
-class Proxy(protocol.BaseClientFactory):
+class JSONRPCClientFactory(protocol.BaseClientFactory):
     def __init__(self, host, port, timeout=5, _reactor=reactor):
         self.client = client.JSONRPCClient(timeout=timeout)
         self.host = host
@@ -54,7 +50,7 @@ class Proxy(protocol.BaseClientFactory):
         self.reactor = _reactor
 
     def buildProtocol(self, addr):
-        self.connection = ClientProtocol(self)
+        self.connection = JSONRPCClientProtocol(self)
         return self.connection
 
     def connect(self):
@@ -95,7 +91,7 @@ class Proxy(protocol.BaseClientFactory):
         self.connection.sendString(payload)
 
 
-class ServerFactory(protocol.BaseServerFactory):
-    protocol = ServerProtocol
+class JSONRPCServerFactory(protocol.BaseServerFactory):
+    protocol = JSONRPCServerProtocol
 
 

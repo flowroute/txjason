@@ -2,7 +2,7 @@ import json
 from twisted.internet import defer
 from twisted.trial import unittest
 from twisted.test import proto_helpers
-from txjason.netstring import protocol
+from txjason.netstring import *
 from txjason import client, handler
 
 
@@ -25,7 +25,7 @@ class FakeReactor(object):
 
 class ServerTestCase(unittest.TestCase):
     def setUp(self):
-        self.factory = protocol.ServerFactory()
+        self.factory = JSONRPCServerFactory()
         self.factory.addHandler(TestHandler(), 'foo')
         self.proto = self.factory.buildProtocol(('127.0.0.1', 0))
         self.tr = proto_helpers.StringTransport()
@@ -52,28 +52,28 @@ class ServerTestCase(unittest.TestCase):
 
 class ClientTestCase(unittest.TestCase):
     def setUp(self):
-        self.proxy = protocol.Proxy('localhost', 5050, _reactor=FakeReactor())
+        self.client = JSONRPCClientFactory('localhost', 5050, _reactor=FakeReactor())
 
     def test_request(self):
         called = []
         def cb(r):
             called.append(r)
             self.assertEqual(r, 3)
-        d = self.proxy.callRemote('foo', 1, 2).addBoth(cb)
-        self.assertEqual(self.proxy.connection.transport.value(), '62:{"params": [1, 2], "jsonrpc": "2.0", "method": "foo", "id": 1},')
-        self.proxy.connection.stringReceived('{"jsonrpc": "2.0", "result": 3, "id": 1}')
+        d = self.client.callRemote('foo', 1, 2).addBoth(cb)
+        self.assertEqual(self.client.connection.transport.value(), '62:{"params": [1, 2], "jsonrpc": "2.0", "method": "foo", "id": 1},')
+        self.client.connection.stringReceived('{"jsonrpc": "2.0", "result": 3, "id": 1}')
         return d
 
     def test_notification(self):
-        self.proxy.notifyRemote('foo', 1, 2)
-        self.assertEqual(self.proxy.connection.transport.value(), '53:{"params": [1, 2], "jsonrpc": "2.0", "method": "foo"},')
+        self.client.notifyRemote('foo', 1, 2)
+        self.assertEqual(self.client.connection.transport.value(), '53:{"params": [1, 2], "jsonrpc": "2.0", "method": "foo"},')
 
     def test_error_response(self):
-        d = self.proxy.callRemote('foo', 1, 2)
-        self.proxy.connection.stringReceived('{"jsonrpc": "2.0", "id": 1, "error": {"message": "Method not found", "code": -32601}}')
+        d = self.client.callRemote('foo', 1, 2)
+        self.client.connection.stringReceived('{"jsonrpc": "2.0", "id": 1, "error": {"message": "Method not found", "code": -32601}}')
         self.failUnlessFailure(d, client.JSONRPCClientError)
 
     def test_lost_connection(self):
-        d = self.proxy.callRemote('foo', 1, 2)
-        self.proxy.connection.connectionLost(None)
+        d = self.client.callRemote('foo', 1, 2)
+        self.client.connection.connectionLost(None)
         self.failUnlessFailure(d, defer.CancelledError)
