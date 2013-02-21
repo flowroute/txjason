@@ -93,5 +93,3 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
 
 class JSONRPCServerFactory(protocol.BaseServerFactory):
     protocol = JSONRPCServerProtocol
-
-

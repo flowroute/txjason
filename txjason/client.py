@@ -18,11 +18,13 @@ class JSONRPCClient(object):
         self.reactor = reactor
 
     def _next_id(self):
-        if self.id > 1000000:
-            self.id = 1
+        _id = self.id
+        if _id > 1000000:
+            _id = 1
         else:
-            self.id = self.id +1
-        return self.id
+            _id += 1
+        self.id = _id
+        return _id
 
     def cancelRequests(self):
         for id, d in self.requests.items():

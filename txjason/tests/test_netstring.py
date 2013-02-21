@@ -1,4 +1,3 @@
-import json
 from twisted.internet import defer
 from twisted.trial import unittest
 from twisted.test import proto_helpers
@@ -13,13 +12,12 @@ def makeNetstring(string):
 class TestHandler(handler.Handler):
     @handler.exportRPC()
     def add(self, x, y):
-        return x+y
+        return x + y
 
 
 class FakeReactor(object):
     def connectTCP(self, host, port, factory):
         proto = factory.buildProtocol(host)
-        #proto.transport = proto_helpers.StringTransport()
         proto.makeConnection(proto_helpers.StringTransport())
 
 
@@ -55,9 +53,7 @@ class ClientTestCase(unittest.TestCase):
         self.client = JSONRPCClientFactory('localhost', 5050, _reactor=FakeReactor())
 
     def test_request(self):
-        called = []
         def cb(r):
-            called.append(r)
             self.assertEqual(r, 3)
         d = self.client.callRemote('foo', 1, 2).addBoth(cb)
         self.assertEqual(self.client.connection.transport.value(), '62:{"params": [1, 2], "jsonrpc": "2.0", "method": "foo", "id": 1},')

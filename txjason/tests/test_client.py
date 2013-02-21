@@ -23,7 +23,9 @@ class ClientTestCase(unittest.TestCase):
             called.append(r.value)
         payload, d = self.client.getRequest('foo')
         d.addErrback(eb)
-        clock.advance(self.client.timeout)
+        clock.advance(self.client.timeout - 1)
+        self.assertFalse(called)
+        clock.advance(1)
         self.assertIsInstance(called[0], defer.CancelledError)
 
     def test_response(self):
@@ -67,6 +69,14 @@ class ClientTestCase(unittest.TestCase):
     def test_notification(self):
         payload = self.client.getNotification('foo', 1)
         expected = {'jsonrpc': '2.0', 'method': 'foo', 'params': [1]}
+        self.checkPayload(payload, expected)
+
+    def test_id_increment(self):
+        payload, d = self.client.getRequest('foo')
+        expected = {'id': 1, 'jsonrpc': '2.0', 'method': 'foo', 'params': []}
+        self.checkPayload(payload, expected)
+        payload, d = self.client.getRequest('foo')
+        expected['id'] = 2
         self.checkPayload(payload, expected)
 
     def test_no_id(self):

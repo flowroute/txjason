@@ -68,6 +68,6 @@ Running the Examples
 
 To run the provided examples:
 
-	* Run 'make' from the main project directory.
+    * Run 'make' from the main project directory.
     * In one shell run ./bin/twistd -noy examples/server.tac
     * In another shell run ./bin/python examples/client.py
