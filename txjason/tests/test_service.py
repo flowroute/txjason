@@ -4,9 +4,15 @@ from twisted.trial import unittest
 from txjason import service
 
 
+class ApplicationError(service.JSONRPCError):
+    code = -32099
+    message = "Fake Error"
+
 def subtract(minuend, subtrahend):
     return minuend-subtrahend
 
+def error():
+    raise ApplicationError()
 
 def update(*args):
     pass
@@ -21,6 +27,7 @@ class ServiceTestCase(unittest.TestCase):
         self.service = service.JSONRPCService()
         self.service.add(subtract)
         self.service.add(update)
+        self.service.add(error)
         self.service.add(deferred_echo)
 
     @defer.inlineCallbacks
@@ -57,6 +64,12 @@ class ServiceTestCase(unittest.TestCase):
     def test_bad_method(self):
         request = {"jsonrpc": "2.0", "method": "foobar", "id": "1"}
         expected = {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": "1"}
+        yield self.makeRequest(request, expected)
+
+    @defer.inlineCallbacks
+    def test_applicationError(self):
+        request = {"jsonrpc": "2.0", "method": "error", "id": "1"}
+        expected = {"jsonrpc": "2.0", "error": {"code": -32099, "message": "Fake Error"}, "id": "1"}
         yield self.makeRequest(request, expected)
 
     @defer.inlineCallbacks
