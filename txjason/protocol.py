@@ -3,8 +3,8 @@ import service, client
 
 
 class BaseServerFactory(protocol.ServerFactory):
-    def __init__(self, seperator='.'):
-        self.service = service.JSONRPCService()
+    def __init__(self, seperator='.', timeout=None):
+        self.service = service.JSONRPCService(timeout)
         self.seperator = seperator
 
     def buildProtocol(self, addr):

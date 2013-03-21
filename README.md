@@ -65,6 +65,19 @@ factory.service.stopServing(CustomError)
 
 Requests to all methods will now receive an error response.
 
+If the ``timeout`` parameter is passed to the Factory, a "Timeout Error" will be returned to the
+client after the specified number of seconds have elapsed:
+
+```python
+factory = JSONRPCServerFactory(timeout=2)
+```
+
+At any time, all pending requests may be cancelled:
+
+```python
+factory.service.cancelPending()
+```
+
 Client Usage
 ------------
 

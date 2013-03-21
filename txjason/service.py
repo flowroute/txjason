@@ -81,7 +81,7 @@ import traceback
 import sys
 import types
 import json
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.python import log
 
 
@@ -93,10 +93,12 @@ class JSONRPCService(object):
     The JSONRPCService class is a JSON-RPC
     """
 
-    def __init__(self):
+    def __init__(self, timeout=None, reactor=reactor):
         self.method_data = {}
         self.serve_exception = None
-        self.requests = {}
+        self.pending = set()
+        self.timeout = timeout
+        self.reactor = reactor
 
     def add(self, f, name=None, types=None, required=None):
         """
@@ -134,6 +136,11 @@ class JSONRPCService(object):
 
     def startServing(self):
         self.serve_exception = None
+
+    def cancelPending(self):
+        pending = self.pending.copy()
+        for i in pending:
+            i.cancel()
 
     @defer.inlineCallbacks
     def call(self, jsondata):
@@ -425,8 +432,24 @@ class JSONRPCService(object):
 
         if self.serve_exception:
             raise self.serve_exception()
-        result = yield self._call_method(request)
-
+        d = self._call_method(request)
+        self.pending.add(d)
+        if self.timeout:
+            timeout_deferred = self.reactor.callLater(self.timeout, d.cancel)
+            def completed(result):
+                if timeout_deferred.active():
+                    timeout_deferred.cancel()
+                return result
+            d.addBoth(completed)
+        try:
+            result = yield d
+        except defer.CancelledError:
+            self.pending.remove(d)
+            raise TimeoutError()
+        except Exception as e:
+            self.pending.remove(d)
+            raise e
+        self.pending.remove(d)
         # Do not respond to notifications.
         if request['id'] is None:
             defer.returnValue(None)
@@ -546,6 +569,12 @@ class KeywordError(JSONRPCError):
     """The received JSON-RPC request is trying to use keyword arguments even tough its version is 1.0."""
     code = -32099
     message = 'Keyword argument error'
+
+
+class TimeoutError(JSONRPCError):
+    """The request took too long to process."""
+    code = -32098
+    message = 'Server Timeout'
 
 
 class ServerError(JSONRPCError):
