@@ -4,9 +4,15 @@ from twisted.trial import unittest
 from txjason import service
 
 
+class FooException(service.JSONRPCError):
+    message = "Foo"
+    code = -32099
+
+
 class ApplicationError(service.JSONRPCError):
     code = -32099
     message = "Fake Error"
+
 
 def subtract(minuend, subtrahend):
     return minuend-subtrahend
@@ -73,6 +79,13 @@ class ServiceTestCase(unittest.TestCase):
         yield self.makeRequest(request, expected)
 
     @defer.inlineCallbacks
+    def test_out_of_service(self):
+        self.service.stopServing(FooException)
+        request = {"jsonrpc": "2.0", "method": "error", "id": "1"}
+        expected = {"jsonrpc": "2.0", "error": {"code": -32099, "message": "Foo"}, "id": "1"}
+        yield self.makeRequest(request, expected)
+
+    @defer.inlineCallbacks
     def test_invalid_json(self):
         request = '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]'
         expected = {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": None}
@@ -114,6 +127,18 @@ class ServiceTestCase(unittest.TestCase):
                      {'error': {'code': -32601, 'message': 'Method not found'}, 'id': 2, 'jsonrpc': '2.0'},
                      {'id': 1, 'jsonrpc': '2.0', 'result': 19},
                      {'id': 3, 'jsonrpc': '2.0', 'result': 19}
+                   ]
+        yield self.makeRequest(request, expected)
+
+    @defer.inlineCallbacks
+    def test_batch(self):
+        self.service.stopServing(FooException)
+        request = [
+                    {"jsonrpc": "2.0", "method": "update", "params": [1,2,3,4,5]},
+                    {"jsonrpc": "2.0", "method": "subtract", "params": {"subtrahend": 23, "minuend": 42}, "id": 3}
+                  ]
+        expected = [
+                     {'error': {'code': -32099, 'message': 'Foo'}, 'id': 3, 'jsonrpc': '2.0'},
                    ]
         yield self.makeRequest(request, expected)
 

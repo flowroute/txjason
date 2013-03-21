@@ -95,6 +95,8 @@ class JSONRPCService(object):
 
     def __init__(self):
         self.method_data = {}
+        self.serve_exception = None
+        self.requests = {}
 
     def add(self, f, name=None, types=None, required=None):
         """
@@ -126,6 +128,12 @@ class JSONRPCService(object):
 
             if required is not None:
                 self.method_data[fname]['required'] = required
+
+    def stopServing(self, exception):
+        self.serve_exception = exception
+
+    def startServing(self):
+        self.serve_exception = None
 
     @defer.inlineCallbacks
     def call(self, jsondata):
@@ -415,6 +423,8 @@ class JSONRPCService(object):
         if self.method_data[request['method']].has_key('types'):
             self._validate_params_types(request['method'], request['params'])
 
+        if self.serve_exception:
+            raise self.serve_exception()
         result = yield self._call_method(request)
 
         # Do not respond to notifications.

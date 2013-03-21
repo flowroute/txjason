@@ -47,6 +47,23 @@ factory.addHandler(Example(), namespace='main')
 The factory can then be used in a .tac, twistd plugin, or anywhere else a server factory
 is normally found. The rpc methods will be exported as 'main.echo' and 'main.deferred_echo'.
 
+The server can be forced to serve a predefined exception by invoking the service's
+``stopServing`` method, with the exception class to serve:
+
+```python
+from txjason.service import JSONRPCError
+
+
+class CustomError(JSONRPCError):
+    code = -32099
+    message = 'Custom Error'
+
+...
+
+factory.service.stopServing(CustomError)
+```
+
+Requests to all methods will now receive an error response.
 
 Client Usage
 ------------
