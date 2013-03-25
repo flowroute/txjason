@@ -96,6 +96,7 @@ class JSONRPCService(object):
     def __init__(self, timeout=None, reactor=reactor):
         self.method_data = {}
         self.serve_exception = None
+        self.deferred = None
         self.pending = set()
         self.timeout = timeout
         self.reactor = reactor
@@ -133,9 +134,12 @@ class JSONRPCService(object):
 
     def stopServing(self, exception):
         self.serve_exception = exception
+        self.deferred = defer.Deferred()
+        return self.deferred
 
     def startServing(self):
         self.serve_exception = None
+        self.deferred = None
 
     def cancelPending(self):
         pending = self.pending.copy()
@@ -424,6 +428,11 @@ class JSONRPCService(object):
 
         defer.returnValue(result)
 
+    def _remove_pending(self, d):
+        self.pending.remove(d)
+        if self.deferred and not self.pending:
+            self.deferred.callback(None)
+
     @defer.inlineCallbacks
     def _handle_request(self, request):
         """Handles given request and returns its response."""
@@ -444,12 +453,12 @@ class JSONRPCService(object):
         try:
             result = yield d
         except defer.CancelledError:
-            self.pending.remove(d)
+            self._remove_pending(d)
             raise TimeoutError()
         except Exception as e:
-            self.pending.remove(d)
+            self._remove_pending(d)
             raise e
-        self.pending.remove(d)
+        self._remove_pending(d)
         # Do not respond to notifications.
         if request['id'] is None:
             defer.returnValue(None)

@@ -87,10 +87,19 @@ class ServiceTestCase(unittest.TestCase):
 
     @defer.inlineCallbacks
     def test_out_of_service(self):
-        self.service.stopServing(FooException)
+        called = []
+        def cb(r):
+            called.append(r)
+        request = {"jsonrpc": "2.0", "method": "delay", "params": [1], "id": "1"}
+        d = self.service.call(json.dumps(request))
+        d = self.service.stopServing(FooException)
+        d.addBoth(cb)
         request = {"jsonrpc": "2.0", "method": "error", "id": "1"}
         expected = {"jsonrpc": "2.0", "error": {"code": -32099, "message": "Foo"}, "id": "1"}
         yield self.makeRequest(request, expected)
+        clock.advance(2)
+        yield d
+        self.assertEqual(len(called), 1)
 
     @defer.inlineCallbacks
     def test_invalid_json(self):
