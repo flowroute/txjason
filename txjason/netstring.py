@@ -5,6 +5,9 @@ from txjason import protocol, client
 
 
 class JSONRPCClientProtocol(NetstringReceiver):
+    """
+    A JSON RPC Client Protocol for TCP/Netstring connections.
+    """
     def __init__(self, factory):
         self.factory = factory
 
@@ -29,6 +32,9 @@ class JSONRPCClientProtocol(NetstringReceiver):
 
 
 class JSONRPCServerProtocol(NetstringReceiver):
+    """
+    A JSON RPC Server Protocol for TCP/Netstring connections.
+    """
     def __init__(self, service):
          self.service = service
 
