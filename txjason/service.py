@@ -134,8 +134,10 @@ class JSONRPCService(object):
 
     def stopServing(self, exception):
         self.serve_exception = exception
-        self.deferred = defer.Deferred()
-        return self.deferred
+        if self.pending:
+            self.deferred = defer.Deferred()
+            return self.deferred
+        return defer.succeed(None)
 
     def startServing(self):
         self.serve_exception = None
