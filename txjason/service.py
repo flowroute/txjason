@@ -132,7 +132,9 @@ class JSONRPCService(object):
             if required is not None:
                 self.method_data[fname]['required'] = required
 
-    def stopServing(self, exception):
+    def stopServing(self, exception=None):
+        if exception is None:
+            exception = ServiceUnavailableError
         self.serve_exception = exception
         if self.pending:
             self.deferred = defer.Deferred()
@@ -586,6 +588,12 @@ class TimeoutError(JSONRPCError):
     """The request took too long to process."""
     code = -32098
     message = 'Server Timeout'
+
+
+class ServiceUnavailableError(JSONRPCError):
+    """The service is not available (stopServing called)."""
+    code = -32097
+    message = 'Service Unavailable'
 
 
 class ServerError(JSONRPCError):
