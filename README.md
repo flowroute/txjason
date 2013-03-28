@@ -48,7 +48,9 @@ The factory can then be used in a .tac, twistd plugin, or anywhere else a server
 is normally found. The rpc methods will be exported as 'main.echo' and 'main.deferred_echo'.
 
 The server can be forced to serve a predefined exception by invoking the service's
-``stopServing`` method, with the exception class to serve:
+``stopServing`` method, with the exception class to serve. If no exception class is passed,
+a ServiceUnavailableError will be used. This method can be used to gracefully suspend the
+service (e.g., in preparation for shutdown), without destroying in-progress requests.
 
 ```python
 from txjason.service import JSONRPCError
