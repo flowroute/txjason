@@ -456,12 +456,17 @@ class JSONRPCService(object):
             timeout_deferred = self.reactor.callLater(self.timeout, d.cancel)
             def completed(result):
                 if timeout_deferred.active():
+                    # cancel the timeout_deferred if it has not been fired yet
+                    # this is to prevent d's deferred chain from firing twice (and
+                    # raising an exception).
                     timeout_deferred.cancel()
                 return result
             d.addBoth(completed)
         try:
             result = yield d
         except defer.CancelledError:
+            # The request was cancelled due to a timeout or by cancelPending
+            # having been called. We return a TimeoutError to the client.
             self._remove_pending(d)
             raise TimeoutError()
         except Exception as e:
