@@ -47,6 +47,38 @@ factory.addHandler(Example(), namespace='main')
 The factory can then be used in a .tac, twistd plugin, or anywhere else a server factory
 is normally found. The rpc methods will be exported as 'main.echo' and 'main.deferred_echo'.
 
+The server can be forced to serve a predefined exception by invoking the service's
+``stopServing`` method, with the exception class to serve. If no exception class is passed,
+a ServiceUnavailableError will be used. This method can be used to gracefully suspend the
+service (e.g., in preparation for shutdown), without destroying in-progress requests.
+
+```python
+from txjason.service import JSONRPCError
+
+
+class CustomError(JSONRPCError):
+    code = -32099
+    message = 'Custom Error'
+
+...
+
+factory.service.stopServing(CustomError)
+```
+
+Requests to all methods will now receive an error response.
+
+If the ``timeout`` parameter is passed to the Factory, a "Timeout Error" will be returned to the
+client after the specified number of seconds have elapsed:
+
+```python
+factory = JSONRPCServerFactory(timeout=2)
+```
+
+At any time, all pending requests may be cancelled:
+
+```python
+factory.service.cancelPending()
+```
 
 Client Usage
 ------------

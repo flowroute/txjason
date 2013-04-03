@@ -81,7 +81,7 @@ import traceback
 import sys
 import types
 import json
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.python import log
 
 
@@ -93,8 +93,13 @@ class JSONRPCService(object):
     The JSONRPCService class is a JSON-RPC
     """
 
-    def __init__(self):
+    def __init__(self, timeout=None, reactor=reactor):
         self.method_data = {}
+        self.serve_exception = None
+        self.out_of_service_deferred = None
+        self.pending = set()
+        self.timeout = timeout
+        self.reactor = reactor
 
     def add(self, f, name=None, types=None, required=None):
         """
@@ -126,6 +131,29 @@ class JSONRPCService(object):
 
             if required is not None:
                 self.method_data[fname]['required'] = required
+
+    def stopServing(self, exception=None):
+        """
+        Returns a deferred that will fire immediately if there are
+        no pending requests, otherwise when the last request is removed
+        from self.pending.
+        """
+        if exception is None:
+            exception = ServiceUnavailableError
+        self.serve_exception = exception
+        if self.pending:
+            d = self.out_of_service_deferred = defer.Deferred()
+            return d
+        return defer.succeed(None)
+
+    def startServing(self):
+        self.serve_exception = None
+        self.out_of_service_deferred = None
+
+    def cancelPending(self):
+        pending = self.pending.copy()
+        for i in pending:
+            i.cancel()
 
     @defer.inlineCallbacks
     def call(self, jsondata):
@@ -409,14 +437,42 @@ class JSONRPCService(object):
 
         defer.returnValue(result)
 
+    def _remove_pending(self, d):
+        self.pending.remove(d)
+        if self.out_of_service_deferred and not self.pending:
+            self.out_of_service_deferred.callback(None)
+
     @defer.inlineCallbacks
     def _handle_request(self, request):
         """Handles given request and returns its response."""
         if self.method_data[request['method']].has_key('types'):
             self._validate_params_types(request['method'], request['params'])
 
-        result = yield self._call_method(request)
-
+        if self.serve_exception:
+            raise self.serve_exception()
+        d = self._call_method(request)
+        self.pending.add(d)
+        if self.timeout:
+            timeout_deferred = self.reactor.callLater(self.timeout, d.cancel)
+            def completed(result):
+                if timeout_deferred.active():
+                    # cancel the timeout_deferred if it has not been fired yet
+                    # this is to prevent d's deferred chain from firing twice (and
+                    # raising an exception).
+                    timeout_deferred.cancel()
+                return result
+            d.addBoth(completed)
+        try:
+            result = yield d
+        except defer.CancelledError:
+            # The request was cancelled due to a timeout or by cancelPending
+            # having been called. We return a TimeoutError to the client.
+            self._remove_pending(d)
+            raise TimeoutError()
+        except Exception as e:
+            self._remove_pending(d)
+            raise e
+        self._remove_pending(d)
         # Do not respond to notifications.
         if request['id'] is None:
             defer.returnValue(None)
@@ -536,6 +592,18 @@ class KeywordError(JSONRPCError):
     """The received JSON-RPC request is trying to use keyword arguments even tough its version is 1.0."""
     code = -32099
     message = 'Keyword argument error'
+
+
+class TimeoutError(JSONRPCError):
+    """The request took too long to process."""
+    code = -32098
+    message = 'Server Timeout'
+
+
+class ServiceUnavailableError(JSONRPCError):
+    """The service is not available (stopServing called)."""
+    code = -32097
+    message = 'Service Unavailable'
 
 
 class ServerError(JSONRPCError):

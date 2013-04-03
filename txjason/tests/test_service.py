@@ -1,12 +1,20 @@
 import json
-from twisted.internet import defer
+from twisted.internet import defer, task
 from twisted.trial import unittest
 from txjason import service
+
+
+clock = task.Clock()
+
+class FooException(service.JSONRPCError):
+    message = "Foo"
+    code = -32099
 
 
 class ApplicationError(service.JSONRPCError):
     code = -32099
     message = "Fake Error"
+
 
 def subtract(minuend, subtrahend):
     return minuend-subtrahend
@@ -17,24 +25,29 @@ def error():
 def update(*args):
     pass
 
-
 def deferred_echo(x):
     return defer.succeed(x)
 
+def delay(d):
+    return task.deferLater(clock, d, lambda: 'x')
 
 class ServiceTestCase(unittest.TestCase):
     def setUp(self):
-        self.service = service.JSONRPCService()
+        self.service = service.JSONRPCService(reactor=clock)
         self.service.add(subtract)
         self.service.add(update)
         self.service.add(error)
+        self.service.add(delay)
         self.service.add(deferred_echo)
 
     @defer.inlineCallbacks
-    def makeRequest(self, request, expected):
+    def makeRequest(self, request, expected, advance=None):
         if not isinstance(request, basestring):
             request = json.dumps(request)
-        response = yield self.service.call(request)
+        d = self.service.call(request)
+        if advance:
+            clock.advance(advance)
+        response = yield d
         if response is not None:
             response = json.loads(response)
         self.assertEqual(response, expected)
@@ -71,6 +84,22 @@ class ServiceTestCase(unittest.TestCase):
         request = {"jsonrpc": "2.0", "method": "error", "id": "1"}
         expected = {"jsonrpc": "2.0", "error": {"code": -32099, "message": "Fake Error"}, "id": "1"}
         yield self.makeRequest(request, expected)
+
+    @defer.inlineCallbacks
+    def test_out_of_service(self):
+        called = []
+        def cb(r):
+            called.append(r)
+        request = {"jsonrpc": "2.0", "method": "delay", "params": [1], "id": "1"}
+        d = self.service.call(json.dumps(request))
+        d = self.service.stopServing(FooException)
+        d.addBoth(cb)
+        request = {"jsonrpc": "2.0", "method": "error", "id": "1"}
+        expected = {"jsonrpc": "2.0", "error": {"code": -32099, "message": "Foo"}, "id": "1"}
+        yield self.makeRequest(request, expected)
+        clock.advance(2)
+        yield d
+        self.assertEqual(len(called), 1)
 
     @defer.inlineCallbacks
     def test_invalid_json(self):
@@ -118,6 +147,18 @@ class ServiceTestCase(unittest.TestCase):
         yield self.makeRequest(request, expected)
 
     @defer.inlineCallbacks
+    def test_batch(self):
+        self.service.stopServing(FooException)
+        request = [
+                    {"jsonrpc": "2.0", "method": "update", "params": [1,2,3,4,5]},
+                    {"jsonrpc": "2.0", "method": "subtract", "params": {"subtrahend": 23, "minuend": 42}, "id": 3}
+                  ]
+        expected = [
+                     {'error': {'code': -32099, 'message': 'Foo'}, 'id': 3, 'jsonrpc': '2.0'},
+                   ]
+        yield self.makeRequest(request, expected)
+
+    @defer.inlineCallbacks
     def test_batch_notification(self):
         request = [
                     {"jsonrpc": "2.0", "method": "update", "params": [1,2,3,4,5]},
@@ -144,3 +185,22 @@ class ServiceTestCase(unittest.TestCase):
                    ]
 
         yield self.makeRequest(request, expected)
+
+    @defer.inlineCallbacks
+    def test_timeout(self):
+        request = {"jsonrpc": "2.0", "method": "delay", "params": [10], "id": "1"}
+        expected = {"jsonrpc": "2.0", "error": {"code": -32098, "message": "Server Timeout"}, "id": "1"}
+        self.service.timeout = 1
+        yield self.makeRequest(request, expected, 5)
+
+    @defer.inlineCallbacks
+    def test_cancel_pending(self):
+        d1 = self.service.call(json.dumps({"jsonrpc": "2.0", "method": "delay", "params": [10], "id": "1"}))
+        d2 = self.service.call(json.dumps({"jsonrpc": "2.0", "method": "delay", "params": [10], "id": "2"}))
+        self.service.cancelPending()
+        r1 = yield d1
+        r2 = yield d2
+        e1 = {"jsonrpc": "2.0", "error": {"code": -32098, "message": "Server Timeout"}, "id": "1"}
+        e2 = {"jsonrpc": "2.0", "error": {"code": -32098, "message": "Server Timeout"}, "id": "2"}
+        self.assertEqual(json.loads(r1), e1)
+        self.assertEqual(json.loads(r2), e2)
