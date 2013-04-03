@@ -57,7 +57,7 @@ from txjason.service import JSONRPCError
 
 
 class CustomError(JSONRPCError):
-    code = -32099
+    code = -32050
     message = 'Custom Error'
 
 ...
