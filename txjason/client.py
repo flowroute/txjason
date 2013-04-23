@@ -31,7 +31,7 @@ class JSONRPCClient(object):
             d.cancel()
             del self.requests[id]
 
-    def getRequest(self, method, *args, **kwargs):
+    def getRequest(self, __method, *args, **kwargs):
         def cancel(r, t):
             try:
                 t.cancel()
@@ -39,15 +39,15 @@ class JSONRPCClient(object):
                 pass
             return r
         id = self._next_id()
-        payload = self._getPayload(method, id, *args, **kwargs)
+        payload = self._getPayload(__method, id, *args, **kwargs)
         d = defer.Deferred()
         self.requests[id] = d
         t = self.reactor.callLater(self.timeout, d.cancel)
         d.addBoth(cancel, t)
         return (payload, d)
 
-    def getNotification(self, method, *args, **kwargs):
-        return self._getPayload(method, None, *args, **kwargs)
+    def getNotification(self, __method, *args, **kwargs):
+        return self._getPayload(__method, None, *args, **kwargs)
 
     def handleResponse(self, payload):
         try:
@@ -72,7 +72,7 @@ class JSONRPCClient(object):
             raise JSONRPCProtocolError('No result or error in response:\n%s' % payload)
         del self.requests[id]
 
-    def _getPayload(self, method, id, *args, **kwargs):
+    def _getPayload(self, __method, id, *args, **kwargs):
         if args and kwargs:
             raise JSONRPCClientError('call accepts positional or named arguments, but not both')
         elif kwargs:
@@ -82,7 +82,7 @@ class JSONRPCClient(object):
 
         payload = {
                     'jsonrpc': '2.0',
-                    'method': method,
+                    'method': __method,
                     'params': params,
                   }
         if id:
