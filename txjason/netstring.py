@@ -83,16 +83,16 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
         d.callback(None)
 
     @defer.inlineCallbacks
-    def callRemote(self, method, *args, **kwargs):
-        payload, d = self.client.getRequest(method, *args, **kwargs)
+    def callRemote(self, __method, *args, **kwargs):
+        payload, d = self.client.getRequest(__method, *args, **kwargs)
         yield self.connect()
         self.connection.sendString(payload)
         result = yield d
         defer.returnValue(result)
 
     @defer.inlineCallbacks
-    def notifyRemote(self, method, *args, **kwargs):
-        payload = self.client.getNotification(method, *args, **kwargs)
+    def notifyRemote(self, __method, *args, **kwargs):
+        payload = self.client.getNotification(__method, *args, **kwargs)
         yield self.connect()
         self.connection.sendString(payload)
 
