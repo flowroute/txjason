@@ -25,14 +25,17 @@
 """
 Simple JSON-RPC service without transport layer
 
-This library is intended as an auxiliary library for easy an implementation of JSON-RPC services with Unix/TCP socket
-like transport protocols that do not have complex special requirements. You need to utilize some suitable transport
+This library is intended as an auxiliary library for easy an implementation of
+JSON-RPC services with Unix/TCP socket like transport protocols that do not
+have complex special requirements. You need to utilize some suitable transport
 protocol with this library to actually provide a working JSON-RPC service.
 
 Features:
 - Easy to use, small size, well tested.
-- Supports JSON-RPC v2.0. Compatible with v1.x style calls with the exception of v1.0 class-hinting.
-- Optional argument type validation that significantly eases development of jsonrpc method_data.
+- Supports JSON-RPC v2.0. Compatible with v1.x style calls with the exception
+  of v1.0 class-hinting.
+- Optional argument type validation that significantly eases development of
+  jsonrpc method_data.
 
 Notes:
 - Modified by Matthew Williams for use with Twisted.
@@ -61,7 +64,8 @@ Example:
         chat_service.add(login, types=[basestring, basestring, int])
 
         # Adds the method receive_message to the service as a 'recv_msg'.
-        chat_service.add(receive_message, name='recv_msg', types={"msg": basestring, "id": int})
+        chat_service.add(receive_message, name='recv_msg',
+                         types={"msg": basestring, "id": int})
 
         # Adds the method send_message as a 'send_msg' to the service.
         chat_service.add(send_message, 'send_msg')
@@ -77,8 +81,6 @@ Example:
         # Send back results.
         my_socket.send(result)
 """
-import traceback
-import sys
 import types
 import json
 from twisted.internet import defer, reactor
@@ -113,11 +115,11 @@ class JSONRPCService(object):
 
         If name argument is not given, function's own name will be used.
 
-        Argument types must be a list if positional arguments are used or a dictionary if keyword arguments are used
-        in the method in question.
+        Argument types must be a list if positional arguments are used or a
+        dictionary if keyword arguments are used in the method in question.
 
-        Argument required MUST be used only for methods requiring keyword arguments, not for methods accepting
-        positional arguments.
+        Argument required MUST be used only for methods requiring keyword
+        arguments, not for methods accepting positional arguments.
         """
         if name is None:
             fname = f.__name__  # Register the function using its own name.
@@ -158,13 +160,14 @@ class JSONRPCService(object):
     @defer.inlineCallbacks
     def call(self, jsondata):
         """
-        Calls jsonrpc service's method and returns its return value in a JSON string or None if there is none.
+        Calls jsonrpc service's method and returns its return value in a JSON
+        string or None if there is none.
 
         Arguments:
         jsondata -- remote method call in jsonrpc format
         """
         result = yield self.call_py(jsondata)
-        if result == None:
+        if result is None:
             defer.returnValue(None)
         else:
             defer.returnValue(json.dumps(result))
@@ -172,10 +175,12 @@ class JSONRPCService(object):
     @defer.inlineCallbacks
     def call_py(self, jsondata):
         """
-        Calls jsonrpc service's method and returns its return value in python object format or None if there is none.
+        Calls jsonrpc service's method and returns its return value in python
+        object format or None if there is none.
 
-        This method is same as call() except the return value is a python object instead of JSON string. This method
-        is mainly only useful for debugging purposes.
+        This method is same as call() except the return value is a python
+        object instead of JSON string. This method is mainly only useful for
+        debugging purposes.
         """
         try:
             try:
@@ -226,12 +231,13 @@ class JSONRPCService(object):
 
                 for request_ in requests:
                     try:
-                        # TODO: We should use a deferred list so requests are processed in parallel
+                        # TODO: We should use a deferred list so requests
+                        #       are processed in parallel
                         respond = yield self._handle_request(request_)
                     except JSONRPCError, e:
                         respond = self._get_err(e,
-                                                 request_['id'],
-                                                 request_['jsonrpc'])
+                                                request_['id'],
+                                                request_['jsonrpc'])
 
                     # Don't respond to notifications
                     if respond is not None:
@@ -250,14 +256,18 @@ class JSONRPCService(object):
         except InvalidRequestError, e:
             defer.returnValue(self._get_err(e, request['id']))
         except JSONRPCError, e:
-            defer.returnValue(self._get_err(e, request['id'], request['jsonrpc']))
+            defer.returnValue(self._get_err(e,
+                                            request['id'],
+                                            request['jsonrpc']))
 
     def _get_err(self, e, id=None, jsonrpc=DEFAULT_JSONRPC):
         """
         Returns jsonrpc error message.
         """
         # Do not respond to notifications when the request is valid.
-        if not id and not isinstance(e, ParseError) and not isinstance(e, InvalidRequestError):
+        if not id \
+                and not isinstance(e, ParseError) \
+                and not isinstance(e, InvalidRequestError):
             return None
 
         respond = {'id': id}
@@ -279,7 +289,8 @@ class JSONRPCService(object):
 
     def _fill_ver(self, iver, respond):
         """
-        Fills version information to the respond from the internal integer version.
+        Fills version information to the respond from the internal integer
+        version.
         """
         if iver == 20:
             respond['jsonrpc'] = '2.0'
@@ -288,9 +299,10 @@ class JSONRPCService(object):
 
     def _vargs(self, f):
         """
-        Returns True if given function accepts variadic positional arguments, otherwise False.
+        Returns True if given function accepts variadic positional arguments,
+        otherwise False.
         """
-        if f.func_code.co_flags&4:
+        if f.func_code.co_flags & 4:
             return True
 
         return False
@@ -323,9 +335,10 @@ class JSONRPCService(object):
         """
         Returns jsonrpc request's jsonrpc value.
 
-        InvalidRequestError will be raised if the jsonrpc value has invalid value.
+        InvalidRequestError will be raised if the jsonrpc value has invalid
+        value.
         """
-        if rdata.has_key('jsonrpc'):
+        if 'jsonrpc' in rdata:
             if rdata['jsonrpc'] == '2.0':
                 return 20
             else:
@@ -333,7 +346,7 @@ class JSONRPCService(object):
                 raise InvalidRequestError
         else:
             # It's probably a JSON-RPC v1.x style call.
-            if rdata.has_key('version'):
+            if 'version' in rdata:
                 if rdata['version'] == '1.1':
                     return 11
 
@@ -346,12 +359,12 @@ class JSONRPCService(object):
 
         InvalidRequestError will be raised if the id value has invalid type.
         """
-        if rdata.has_key('id'):
+        if 'id' in rdata:
             if isinstance(rdata['id'], basestring) or \
-            isinstance(rdata['id'], int) or \
-            isinstance(rdata['id'], long) or \
-            isinstance(rdata['id'], float) or \
-            rdata['id'] is None:
+                    isinstance(rdata['id'], int) or \
+                    isinstance(rdata['id'], long) or \
+                    isinstance(rdata['id'], float) or \
+                    rdata['id'] is None:
                 return rdata['id']
             else:
                 # invalid type
@@ -365,9 +378,10 @@ class JSONRPCService(object):
         Returns jsonrpc request's method value.
 
         InvalidRequestError will be raised if it's missing or is wrong type.
-        MethodNotFoundError will be raised if a method with given method name does not exist.
+        MethodNotFoundError will be raised if a method with given method name
+        does not exist.
         """
-        if rdata.has_key('method'):
+        if 'method' in rdata:
             if not isinstance(rdata['method'], basestring):
                 raise InvalidRequestError
         else:
@@ -382,8 +396,10 @@ class JSONRPCService(object):
         """
         Returns a list of jsonrpc request's method parameters.
         """
-        if rdata.has_key('params'):
-            if isinstance(rdata['params'], dict) or isinstance(rdata['params'], list) or rdata['params'] is None:
+        if 'params' in rdata:
+            if isinstance(rdata['params'], dict) \
+                    or isinstance(rdata['params'], list) \
+                    or rdata['params'] is None:
                 return rdata['params']
             else:
                 # wrong type
@@ -413,25 +429,28 @@ class JSONRPCService(object):
                 if len(params) < self._man_args(method):
                     raise InvalidParamsError('not enough arguments')
                 # Does it have too many arguments?
-                if not self._vargs(method) and len(params) > self._max_args(method):
+                if not self._vargs(method) \
+                        and len(params) > self._max_args(method):
                     raise InvalidParamsError('too many arguments')
 
                 result = yield defer.maybeDeferred(method, *params)
             elif isinstance(params, dict):
-                # Do not accept keyword arguments if the jsonrpc version is not >=1.1.
+                # Do not accept keyword arguments if the jsonrpc version is
+                # not >=1.1.
                 if request['jsonrpc'] < 11:
                     raise KeywordError
 
                 result = yield defer.maybeDeferred(method, **params)
-            else: # No params
+            else:  # No params
                 result = yield defer.maybeDeferred(method)
         except JSONRPCError:
             raise
         except TypeError:
             raise InvalidParamsError()
-        except Exception as e:
+        except Exception:
             # Exception was raised inside the method.
-            log.msg('Exception raised while invoking RPC method "%s".' % request['method'])
+            log.msg('Exception raised while invoking RPC method "{}".'.format(
+                    request['method']))
             log.err()
             raise ServerError
 
@@ -445,7 +464,7 @@ class JSONRPCService(object):
     @defer.inlineCallbacks
     def _handle_request(self, request):
         """Handles given request and returns its response."""
-        if self.method_data[request['method']].has_key('types'):
+        if 'types' in self.method_data[request['method']]:
             self._validate_params_types(request['method'], request['params'])
 
         if self.serve_exception:
@@ -454,11 +473,12 @@ class JSONRPCService(object):
         self.pending.add(d)
         if self.timeout:
             timeout_deferred = self.reactor.callLater(self.timeout, d.cancel)
+
             def completed(result):
                 if timeout_deferred.active():
                     # cancel the timeout_deferred if it has not been fired yet
-                    # this is to prevent d's deferred chain from firing twice (and
-                    # raising an exception).
+                    # this is to prevent d's deferred chain from firing twice
+                    # (and raising an exception).
                     timeout_deferred.cancel()
                 return result
             d.addBoth(completed)
@@ -486,7 +506,8 @@ class JSONRPCService(object):
 
     def _get_default_vals(self):
         """
-        Returns dictionary containing default jsonrpc request/responds values for error handling purposes.
+        Returns dictionary containing default jsonrpc request/responds values
+        for error handling purposes.
         """
         return {"jsonrpc": DEFAULT_JSONRPC, "id": None}
 
@@ -496,26 +517,34 @@ class JSONRPCService(object):
         """
         if isinstance(params, list):
             if not isinstance(self.method_data[method]['types'], list):
-                raise InvalidParamsError('expected keyword params, not positional')
+                raise InvalidParamsError(
+                    'expected keyword params, not positional')
 
-            for param, type, posnum in zip(params, self.method_data[method]['types'], range(1, len(params)+1)):
+            for param, type, posnum in zip(params,
+                                           self.method_data[method]['types'],
+                                           range(1, len(params)+1)):
                 if not (isinstance(param, type) or param is None):
-                    raise InvalidParamsError('positional arg #%s is the wrong type' % posnum)
+                    raise InvalidParamsError(
+                        'positional arg #{} is the wrong type'.format(posnum))
 
         elif isinstance(params, dict):
             if not isinstance(self.method_data[method]['types'], dict):
-                raise InvalidParamsError('expected positional params, not keyword')
+                raise InvalidParamsError(
+                    'expected positional params, not keyword')
 
-            if self.method_data[method].has_key('required'):
+            if 'required' in self.method_data[method]:
                 for key in self.method_data[method]['required']:
-                    if not params.has_key(key):
+                    if key not in params:
                         raise InvalidParamsError('missing key: %s' % key)
 
             for key in params.keys():
-                if not self.method_data[method]['types'].has_key(key) or \
-                not (isinstance(params[key], self.method_data[method]['types'][key]) \
-                or params[key] is None):
-                    raise InvalidParamsError('arg "%s" is the wrong type' % key)
+                if key not in self.method_data[method]['types'] or \
+                    not (isinstance(params[key],
+                                    self.method_data[method]['types'][key])
+                         or params[key] is None):
+                    raise InvalidParamsError(
+                        'arg "{}" is the wrong type'.format(key))
+
 
 class JSONRPCError(Exception):
     """
@@ -538,15 +567,15 @@ class JSONRPCError(Exception):
         """Return the Exception data in a format for JSON-RPC."""
 
         error = {'code': self.code,
-                'message': str(self.message)}
+                 'message': str(self.message)}
 
-        if self.data != None:
+        if self.data is not None:
             error['data'] = self.data
 
         return error
 
 
-#===============================================================================
+#==============================================================================
 # Exceptions
 #
 # The error-codes -32768 .. -32000 (inclusive) are reserved for pre-defined
@@ -554,10 +583,11 @@ class JSONRPCError(Exception):
 #
 # Any error-code within this range not defined explicitly below is reserved
 # for future use
-#===============================================================================
+#==============================================================================
 
 class ParseError(JSONRPCError):
-    """Invalid JSON. An error occurred on the server while parsing the JSON text."""
+    """Invalid JSON. An error occurred on the server while parsing the JSON
+    text."""
     code = -32700
     message = 'Parse error'
 
@@ -578,18 +608,22 @@ class InvalidParamsError(JSONRPCError):
     """Invalid method parameters."""
     code = -32602
     message = 'Invalid params'
+
     def __init__(self, data=None):
         self.data = data
+
 
 class InternalError(JSONRPCError):
     """Internal JSON-RPC error."""
     code = -32603
     message = 'Internal error'
 
-# -32099..-32000 Server error. Reserved for implementation-defined server-errors.
 
+# -32099..-32000 Server error. Reserved for implementation-defined
+# server-errors.
 class KeywordError(JSONRPCError):
-    """The received JSON-RPC request is trying to use keyword arguments even tough its version is 1.0."""
+    """The received JSON-RPC request is trying to use keyword arguments even
+    tough its version is 1.0."""
     code = -32099
     message = 'Keyword argument error'
 
