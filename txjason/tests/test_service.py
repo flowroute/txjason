@@ -33,6 +33,10 @@ def deferred_echo(x):
     return defer.succeed(x)
 
 
+def bad_handler(x):
+    return "foo" + 2 + x
+
+
 def delay(d):
     return task.deferLater(clock, d, lambda: 'x')
 
@@ -45,6 +49,7 @@ class ServiceTestCase(unittest.TestCase):
         self.service.add(error)
         self.service.add(delay)
         self.service.add(deferred_echo)
+        self.service.add(bad_handler)
 
     @defer.inlineCallbacks
     def makeRequest(self, request, expected, advance=None):
@@ -294,3 +299,16 @@ class ServiceTestCase(unittest.TestCase):
               "id": "2"}
         self.assertEqual(json.loads(r1), e1)
         self.assertEqual(json.loads(r2), e2)
+
+    @defer.inlineCallbacks
+    def test_bad_handler(self):
+        request = {"jsonrpc": "2.0",
+                   "method": "bad_handler",
+                   "params": [10],
+                   "id": "1"}
+        expected = {"jsonrpc": "2.0",
+                    "error": {"code": -32000, "message": "Server error"},
+                    "id": "1"}
+        yield self.makeRequest(request, expected)
+        e = self.flushLoggedErrors(TypeError)
+        self.assertTrue(e[0].check(TypeError))

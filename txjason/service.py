@@ -445,8 +445,6 @@ class JSONRPCService(object):
                 result = yield defer.maybeDeferred(method)
         except JSONRPCError:
             raise
-        except TypeError:
-            raise InvalidParamsError()
         except Exception:
             # Exception was raised inside the method.
             log.msg('Exception raised while invoking RPC method "{}".'.format(
