@@ -80,11 +80,9 @@ class JSONRPCClient(object):
         else:
             params = args
 
-        payload = {
-                    'jsonrpc': '2.0',
-                    'method': __method,
-                    'params': params,
-                  }
+        payload = {'jsonrpc': '2.0',
+                   'method': __method,
+                   'params': params}
         if id:
             payload['id'] = id
         return json.dumps(payload)
