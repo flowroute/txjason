@@ -1,8 +1,8 @@
 import json
 from twisted.internet import defer, task
-from twisted.trial import unittest
 from txjason import service
 
+from common import TXJasonTestCase
 
 clock = task.Clock()
 
@@ -41,7 +41,7 @@ def delay(d):
     return task.deferLater(clock, d, lambda: 'x')
 
 
-class ServiceTestCase(unittest.TestCase):
+class ServiceTestCase(TXJasonTestCase):
     def setUp(self):
         self.service = service.JSONRPCService(reactor=clock)
         self.service.add(subtract)

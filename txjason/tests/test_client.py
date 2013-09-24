@@ -1,13 +1,13 @@
 import json
 from twisted.internet import defer, task
-from twisted.trial import unittest
 from txjason import client
 
+from common import TXJasonTestCase
 
 clock = task.Clock()
 
 
-class ClientTestCase(unittest.TestCase):
+class ClientTestCase(TXJasonTestCase):
     def setUp(self):
         self.client = client.JSONRPCClient(reactor=clock)
 
@@ -19,6 +19,7 @@ class ClientTestCase(unittest.TestCase):
 
     def test_timeout(self):
         called = []
+
         def eb(r):
             called.append(r.value)
         payload, d = self.client.getRequest('foo')
@@ -30,6 +31,7 @@ class ClientTestCase(unittest.TestCase):
 
     def test_response(self):
         called = []
+
         def cb(r):
             called.append(r)
         payload, d = self.client.getRequest('foo')
@@ -40,6 +42,7 @@ class ClientTestCase(unittest.TestCase):
 
     def test_error(self):
         called = []
+
         def eb(r):
             called.append(r.value)
         payload, d = self.client.getRequest('foo')

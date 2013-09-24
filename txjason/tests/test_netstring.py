@@ -4,6 +4,8 @@ from twisted.test import proto_helpers
 from txjason.netstring import *
 from txjason import client, handler
 
+from common import TXJasonTestCase
+
 
 def makeNetstring(string):
     return '%d:%s,' % (len(string), string)
@@ -21,7 +23,7 @@ class FakeReactor(object):
         proto.makeConnection(proto_helpers.StringTransport())
 
 
-class ServerTestCase(unittest.TestCase):
+class ServerTestCase(TXJasonTestCase):
     def setUp(self):
         self.factory = JSONRPCServerFactory()
         self.factory.addHandler(TestHandler(), 'foo')
