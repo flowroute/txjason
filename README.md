@@ -95,6 +95,8 @@ d = client.callRemote('main.echo', 'foo')
 d.addBoth(someFunction)
 ```
 
+For a non-twisted/blocking JSON-RPC over Netstring client, try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
+
 Running the Examples
 --------------------
 
