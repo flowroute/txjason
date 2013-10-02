@@ -14,7 +14,7 @@ class JSONRPCClientProtocol(NetstringReceiver):
     def stringReceived(self, string):
         try:
             self.factory.client.handleResponse(string)
-        except client.JSONRPCProtocolError as e:
+        except client.JSONRPCProtocolError:
             log.err()
             self.transport.loseConnection()
         except:
@@ -36,13 +36,13 @@ class JSONRPCServerProtocol(NetstringReceiver):
     A JSON RPC Server Protocol for TCP/Netstring connections.
     """
     def __init__(self, service):
-         self.service = service
+        self.service = service
 
     @defer.inlineCallbacks
     def stringReceived(self, string):
         result = yield self.service.call(string)
         if result is not None:
-             self.sendString(result)
+            self.sendString(result)
 
 
 class JSONRPCClientFactory(protocol.BaseClientFactory):
