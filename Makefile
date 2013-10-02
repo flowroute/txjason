@@ -6,7 +6,7 @@ ve:
 
 # Bootstraps buildout.
 bin/buildout: ve
-	ve/bin/python bootstrap.py
+	ve/bin/python bootstrap.py --version 2.1.1
 
 # Runs buildout to fetch and install dependencies into the environment.
 buildout: bin/buildout
