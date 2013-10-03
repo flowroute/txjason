@@ -243,3 +243,13 @@ class ClientTestCase(TXJasonTestCase):
         self.assertEqual(
             json.loads(readNetstring(self.endpoint.transport.value())),
             {'params': [], 'jsonrpc': '2.0', 'method': 'eggs'})
+
+    def test_callRemote_timeout(self):
+        """
+        A timeout causes the Deferred returned by callRemote to errback with
+        CancelledError.
+        """
+        self.assertFalse(self.endpoint.connected)
+        d = self.factory.callRemote('spam')
+        self.reactor.advance(10)
+        self.failureResultOf(d, defer.CancelledError)

@@ -45,7 +45,7 @@ class JSONRPCServerProtocol(NetstringReceiver):
 
 class JSONRPCClientFactory(protocol.BaseClientFactory):
     def __init__(self, endpoint, timeout=5, _reactor=reactor):
-        self.client = client.JSONRPCClient(timeout=timeout, reactor=reactor)
+        self.client = client.JSONRPCClient(timeout=timeout, reactor=_reactor)
         self.endpoint = endpoint
         self._proto = None
         self._waiting = []
