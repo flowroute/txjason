@@ -1,6 +1,6 @@
 from twisted.internet import defer, reactor
 from twisted.protocols.basic import NetstringReceiver
-from twisted.python import log
+from twisted.python import failure, log
 from txjason import protocol, client
 
 
@@ -10,6 +10,7 @@ class JSONRPCClientProtocol(NetstringReceiver):
     """
     def __init__(self, factory):
         self.factory = factory
+        self.deferred = defer.Deferred()
 
     def stringReceived(self, string):
         try:
@@ -20,15 +21,12 @@ class JSONRPCClientProtocol(NetstringReceiver):
         except:
             log.err()
 
-    def connectionMade(self):
-        self.factory.connectionMade()
-
     def connectionLost(self, reason):
         if self.brokenPeer:
             log.msg('Disconencted from server because of a broken peer.')
         else:
             log.msg('Lost server connection.')
-        self.factory.connectionLost()
+        self.deferred.errback(reason)
 
 
 class JSONRPCServerProtocol(NetstringReceiver):
@@ -46,55 +44,70 @@ class JSONRPCServerProtocol(NetstringReceiver):
 
 
 class JSONRPCClientFactory(protocol.BaseClientFactory):
-    def __init__(self, host, port, timeout=5, _reactor=reactor):
-        self.client = client.JSONRPCClient(timeout=timeout)
-        self.host = host
-        self.port = port
-        self.connecting = False
-        self.connected = False
-        self.closing = False
+    def __init__(self, endpoint, timeout=5, _reactor=reactor):
+        self.client = client.JSONRPCClient(timeout=timeout, reactor=reactor)
+        self.endpoint = endpoint
+        self._proto = None
+        self._waiting = []
+        self._connecting = False
+        self._connectionDeferred = None
         self.reactor = _reactor
 
     def buildProtocol(self, addr):
-        self.connection = JSONRPCClientProtocol(self)
-        return self.connection
+        return JSONRPCClientProtocol(self)
 
-    def connect(self):
-        if self.connected:
-            return defer.succeed(None)
-        elif self.connecting:
-            return self.connecting
-        if self.closing:
-            return self.closing.addCallback(lambda x: self.connect())
-        self.connecting = defer.Deferred()
-        self.reactor.connectTCP(self.host, self.port, self)
-        return self.connecting
+    def _cancel(self, d):
+        if self._connectionDeferred is not None:
+            self._connectionDeferred.cancel()
 
-    def connectionMade(self):
-        self.connecting.callback(None)
-        self.connecting = False
-        self.connected = True
+    def _getConnection(self):
+        if self._proto is not None:
+            return defer.succeed(self._proto)
+        d = defer.Deferred(self._cancel)
+        self._waiting.append(d)
+        if not self._connecting:
+            self._connecting = True
+            self._connectionDeferred = (
+                self.endpoint.connect(self)
+                .addBoth(self._gotResult)
+                .addErrback(log.err, 'error connecting %r' % (self,)))
+        return d
 
-    def connectionLost(self):
-        d = self.closing = defer.Deferred()
-        self.connected = False
-        self.client.cancelRequests()
-        self.closing = False
-        d.callback(None)
+    def _gotResult(self, result):
+        self._connecting = False
+        if not isinstance(result, failure.Failure):
+            self._proto = result
+            self._proto.deferred.addErrback(self._lostProtocol)
+        waiting, self._waiting = self._waiting, []
+        for d in waiting:
+            d.callback(result)
+        return result
 
-    @defer.inlineCallbacks
+    def _lostProtocol(self, reason):
+        log.err(reason, '%r disconnected' % (self,))
+        self._proto = None
+
     def callRemote(self, __method, *args, **kwargs):
-        payload, d = self.client.getRequest(__method, *args, **kwargs)
-        yield self.connect()
-        self.connection.sendString(payload)
-        result = yield d
-        defer.returnValue(result)
+        connectionDeferred = self._getConnection()
 
-    @defer.inlineCallbacks
+        def gotConnection(connection):
+            payload, requestDeferred = self.client.getRequest(
+                __method, *args, **kwargs)
+            connection.sendString(payload)
+            return requestDeferred
+
+        connectionDeferred.addCallback(gotConnection)
+        return connectionDeferred
+
     def notifyRemote(self, __method, *args, **kwargs):
-        payload = self.client.getNotification(__method, *args, **kwargs)
-        yield self.connect()
-        self.connection.sendString(payload)
+        connectionDeferred = self._getConnection()
+
+        def gotConnection(connection):
+            payload = self.client.getNotification(__method, *args, **kwargs)
+            connection.sendString(payload)
+
+        connectionDeferred.addCallback(gotConnection)
+        return connectionDeferred
 
 
 class JSONRPCServerFactory(protocol.BaseServerFactory):
