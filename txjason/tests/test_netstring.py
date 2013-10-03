@@ -87,6 +87,10 @@ class ServerTestCase(TXJasonTestCase):
 
 
 class ClientTestCase(TXJasonTestCase):
+    """
+    Tests for JSONRPCClientFactory.
+    """
+
     def setUp(self):
         self.reactor = task.Clock()
         self.endpoint = FakeEndpoint()
@@ -94,6 +98,10 @@ class ClientTestCase(TXJasonTestCase):
             self.endpoint, _reactor=self.reactor)
 
     def test_callRemote(self):
+        """
+        callRemote sends data and returns a Deferred that fires with the result
+        from over the wire.
+        """
         self.assertFalse(self.endpoint.connected)
         d = self.factory.callRemote('spam')
         self.assert_(self.endpoint.connected)
@@ -106,6 +114,9 @@ class ClientTestCase(TXJasonTestCase):
         return d
 
     def test_callRemote_error_response(self):
+        """
+        callRemote's Deferred can also errback if an error comes over the wire.
+        """
         d = self.factory.callRemote('spam')
         self.endpoint.proto.stringReceived(json.dumps(
             {'jsonrpc': '2.0', 'id': 1, 'error': {
@@ -113,14 +124,23 @@ class ClientTestCase(TXJasonTestCase):
         return self.assertFailure(d, client.JSONRPCClientError)
 
     def test_notifyRemote(self):
+        """
+        notifyRemote sends data but and returns a Deferred, but does not expect
+        a response.
+        """
         self.assertFalse(self.endpoint.connected)
-        self.factory.notifyRemote('spam')
+        d = self.factory.notifyRemote('spam')
         self.assert_(self.endpoint.connected)
         self.assertEqual(
             json.loads(readNetstring(self.endpoint.transport.value())),
             {'params': [], 'jsonrpc': '2.0', 'method': 'spam'})
+        return d
 
     def test_callRemote_connection_failure(self):
+        """
+        Connection failures get propagated as an errback on callRemote's
+        Deferred.
+        """
         self.assertFalse(self.endpoint.connected)
         self.endpoint.fail = True
         d = self.factory.callRemote('spam')
@@ -128,6 +148,10 @@ class ClientTestCase(TXJasonTestCase):
         return self.assertFailure(d, FakeError)
 
     def test_notifyRemote_connection_failure(self):
+        """
+        Connection failures get propagated as an errback on notifyRemote's
+        Deferred.
+        """
         self.assertFalse(self.endpoint.connected)
         self.endpoint.fail = True
         d = self.factory.notifyRemote('spam')
@@ -135,6 +159,10 @@ class ClientTestCase(TXJasonTestCase):
         return self.assertFailure(d, FakeError)
 
     def test_notifyRemote_two_connection_failures(self):
+        """
+        In the case of two synchronous connection failures, both notifyRemote
+        calls errback with the connection failure.
+        """
         self.assertFalse(self.endpoint.connected)
         self.endpoint.fail = True
         d1 = self.factory.notifyRemote('spam')
@@ -146,6 +174,11 @@ class ClientTestCase(TXJasonTestCase):
         ])
 
     def test_notifyRemote_two_pending_connection_failures(self):
+        """
+        In the case of two notifyRemotes both waiting on the same connection,
+        and the connection fails, both Deferreds returned by notifyRemote will
+        errback.
+        """
         self.assertFalse(self.endpoint.connected)
         self.endpoint.deferred = defer.Deferred()
         d1 = self.factory.notifyRemote('spam')
@@ -158,6 +191,10 @@ class ClientTestCase(TXJasonTestCase):
         ])
 
     def test_callRemote_cancellation_during_connection(self):
+        """
+        The Deferred returned by callRemote can be cancelled during the
+        connection attempt.
+        """
         self.assertFalse(self.endpoint.connected)
         canceled = []
         self.endpoint.deferred = defer.Deferred(canceled.append)
@@ -168,12 +205,20 @@ class ClientTestCase(TXJasonTestCase):
         return self.assertFailure(d, defer.CancelledError)
 
     def test_callRemote_cancellation_during_request(self):
+        """
+        The Deferred returned by callRemote can be cancelled while waiting on a
+        response.
+        """
         self.assertFalse(self.endpoint.connected)
         d = self.factory.callRemote('spam')
         d.cancel()
         return self.assertFailure(d, defer.CancelledError)
 
     def test_notifyRemote_cancellation_during_connection(self):
+        """
+        The Deferred returned by notifyRemote can be cancelled during the
+        connection attempt.
+        """
         self.assertFalse(self.endpoint.connected)
         canceled = []
         self.endpoint.deferred = defer.Deferred(canceled.append)
@@ -184,6 +229,10 @@ class ClientTestCase(TXJasonTestCase):
         return self.assertFailure(d, defer.CancelledError)
 
     def test_reconnection(self):
+        """
+        A new connection is established if the connection is lost between
+        notifyRemote calls.
+        """
         self.assertFalse(self.endpoint.connected)
         self.factory.notifyRemote('spam')
         self.assert_(self.endpoint.connected)
