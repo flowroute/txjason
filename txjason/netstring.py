@@ -88,6 +88,7 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
     def _lostProtocol(self, reason):
         log.err(reason, '%r disconnected' % (self,))
         self._proto = None
+        self.client.cancelRequests()
 
     def callRemote(self, __method, *args, **kwargs):
         connectionDeferred = self._getConnection()
@@ -110,6 +111,12 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
 
         connectionDeferred.addCallback(gotConnection)
         return connectionDeferred
+
+    def disconnect(self):
+        if self._proto:
+            self._proto.transport.abortConnection()
+        elif self._connecting:
+            self._connectionDeferred.cancel()
 
 
 class JSONRPCServerFactory(protocol.BaseServerFactory):
