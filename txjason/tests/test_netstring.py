@@ -1,7 +1,6 @@
 import json
 
 from twisted.internet import defer, task
-from twisted.trial import unittest
 from twisted.test import proto_helpers
 from txjason.netstring import JSONRPCClientFactory, JSONRPCServerFactory
 from txjason import client, handler
