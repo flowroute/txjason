@@ -35,6 +35,10 @@ class FakeError(Exception):
     pass
 
 
+class FakeDisconnectedError(Exception):
+    pass
+
+
 class FakeEndpoint(object):
     def __init__(self, deferred=None, fail=False):
         self.deferred = deferred
@@ -49,7 +53,7 @@ class FakeEndpoint(object):
         self.proto = fac.buildProtocol(None)
         self.transport = proto_helpers.StringTransport()
         self.transport.abortConnection = self.transport.loseConnection = (
-            lambda: self.disconnect(FakeError()))
+            lambda: self.disconnect(FakeDisconnectedError()))
         self.proto.makeConnection(self.transport)
         self.connected = True
         return defer.succeed(self.proto)
@@ -236,9 +240,9 @@ class ClientTestCase(TXJasonTestCase):
         self.assertFalse(self.endpoint.connected)
         self.factory.notifyRemote('spam')
         self.assert_(self.endpoint.connected)
-        self.endpoint.disconnect(FakeError())
+        self.endpoint.disconnect(FakeDisconnectedError())
         self.assertFalse(self.endpoint.connected)
-        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
+        self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 1)
         self.factory.notifyRemote('eggs')
         self.assert_(self.endpoint.connected)
         self.assertEqual(
@@ -264,7 +268,7 @@ class ClientTestCase(TXJasonTestCase):
         self.assertIsNot(self.endpoint.transport, None)
         self.factory.disconnect()
         self.assertIs(self.endpoint.transport, None)
-        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
+        self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 1)
 
     def test_disconnect_connection_cancellation(self):
         """
@@ -286,5 +290,5 @@ class ClientTestCase(TXJasonTestCase):
         self.assertIsNot(self.endpoint.transport, None)
         self.factory.disconnect()
         self.assertIs(self.endpoint.transport, None)
-        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
+        self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 1)
         self.failureResultOf(d, defer.CancelledError)
