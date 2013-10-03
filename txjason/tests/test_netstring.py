@@ -110,8 +110,7 @@ class ClientTestCase(TXJasonTestCase):
             {'params': [], 'jsonrpc': '2.0', 'method': 'spam', 'id': 1})
         self.endpoint.proto.stringReceived(json.dumps(
             {'jsonrpc': '2.0', 'id': 1, 'result': 'eggs'}))
-        d.addCallback(self.assertEqual, 'eggs')
-        return d
+        self.assertEqual(self.successResultOf(d), 'eggs')
 
     def test_callRemote_error_response(self):
         """
@@ -121,7 +120,7 @@ class ClientTestCase(TXJasonTestCase):
         self.endpoint.proto.stringReceived(json.dumps(
             {'jsonrpc': '2.0', 'id': 1, 'error': {
                 'message': 'error', 'code': -19}}))
-        return self.assertFailure(d, client.JSONRPCClientError)
+        self.failureResultOf(d, client.JSONRPCClientError)
 
     def test_notifyRemote(self):
         """
@@ -134,7 +133,7 @@ class ClientTestCase(TXJasonTestCase):
         self.assertEqual(
             json.loads(readNetstring(self.endpoint.transport.value())),
             {'params': [], 'jsonrpc': '2.0', 'method': 'spam'})
-        return d
+        self.successResultOf(d)
 
     def test_callRemote_connection_failure(self):
         """
@@ -145,7 +144,7 @@ class ClientTestCase(TXJasonTestCase):
         self.endpoint.fail = True
         d = self.factory.callRemote('spam')
         self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
-        return self.assertFailure(d, FakeError)
+        self.failureResultOf(d, FakeError)
 
     def test_notifyRemote_connection_failure(self):
         """
@@ -156,7 +155,7 @@ class ClientTestCase(TXJasonTestCase):
         self.endpoint.fail = True
         d = self.factory.notifyRemote('spam')
         self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
-        return self.assertFailure(d, FakeError)
+        self.failureResultOf(d, FakeError)
 
     def test_notifyRemote_two_connection_failures(self):
         """
@@ -168,10 +167,10 @@ class ClientTestCase(TXJasonTestCase):
         d1 = self.factory.notifyRemote('spam')
         d2 = self.factory.notifyRemote('spam')
         self.assertEqual(len(self.flushLoggedErrors(FakeError)), 2)
-        return defer.gatherResults([
+        self.successResultOf(defer.gatherResults([
             self.assertFailure(d1, FakeError),
             self.assertFailure(d2, FakeError),
-        ])
+        ]))
 
     def test_notifyRemote_two_pending_connection_failures(self):
         """
@@ -185,10 +184,10 @@ class ClientTestCase(TXJasonTestCase):
         d2 = self.factory.notifyRemote('spam')
         self.endpoint.deferred.errback(FakeError())
         self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
-        return defer.gatherResults([
+        self.successResultOf(defer.gatherResults([
             self.assertFailure(d1, FakeError),
             self.assertFailure(d2, FakeError),
-        ])
+        ]))
 
     def test_callRemote_cancellation_during_connection(self):
         """
@@ -202,7 +201,7 @@ class ClientTestCase(TXJasonTestCase):
         d.cancel()
         self.assert_(canceled)
         self.assertEqual(len(self.flushLoggedErrors(defer.CancelledError)), 1)
-        return self.assertFailure(d, defer.CancelledError)
+        self.failureResultOf(d, defer.CancelledError)
 
     def test_callRemote_cancellation_during_request(self):
         """
@@ -212,7 +211,7 @@ class ClientTestCase(TXJasonTestCase):
         self.assertFalse(self.endpoint.connected)
         d = self.factory.callRemote('spam')
         d.cancel()
-        return self.assertFailure(d, defer.CancelledError)
+        self.failureResultOf(d, defer.CancelledError)
 
     def test_notifyRemote_cancellation_during_connection(self):
         """
@@ -226,7 +225,7 @@ class ClientTestCase(TXJasonTestCase):
         d.cancel()
         self.assert_(canceled)
         self.assertEqual(len(self.flushLoggedErrors(defer.CancelledError)), 1)
-        return self.assertFailure(d, defer.CancelledError)
+        self.failureResultOf(d, defer.CancelledError)
 
     def test_reconnection(self):
         """
