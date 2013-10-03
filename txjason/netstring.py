@@ -1,4 +1,4 @@
-from twisted.internet import defer, reactor
+from twisted.internet import defer
 from twisted.protocols.basic import NetstringReceiver
 from twisted.python import failure, log
 from txjason import protocol, client
@@ -44,14 +44,16 @@ class JSONRPCServerProtocol(NetstringReceiver):
 
 
 class JSONRPCClientFactory(protocol.BaseClientFactory):
-    def __init__(self, endpoint, timeout=5, _reactor=reactor):
-        self.client = client.JSONRPCClient(timeout=timeout, reactor=_reactor)
+    def __init__(self, endpoint, timeout=5, reactor=None):
+        if reactor is None:
+            from twisted.internet import reactor
+        self.client = client.JSONRPCClient(timeout=timeout, reactor=reactor)
         self.endpoint = endpoint
         self._proto = None
         self._waiting = []
         self._connecting = False
         self._connectionDeferred = None
-        self.reactor = _reactor
+        self.reactor = reactor
 
     def buildProtocol(self, addr):
         return JSONRPCClientProtocol(self)
