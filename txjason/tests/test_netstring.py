@@ -49,6 +49,8 @@ class FakeEndpoint(object):
             return defer.fail(FakeError())
         self.proto = fac.buildProtocol(None)
         self.transport = proto_helpers.StringTransport()
+        self.transport.abortConnection = self.transport.loseConnection = (
+            lambda: self.disconnect(FakeError()))
         self.proto.makeConnection(self.transport)
         self.connected = True
         return defer.succeed(self.proto)
@@ -95,7 +97,7 @@ class ClientTestCase(TXJasonTestCase):
         self.reactor = task.Clock()
         self.endpoint = FakeEndpoint()
         self.factory = JSONRPCClientFactory(
-            self.endpoint, _reactor=self.reactor)
+            self.endpoint, reactor=self.reactor)
 
     def test_callRemote(self):
         """
@@ -252,4 +254,38 @@ class ClientTestCase(TXJasonTestCase):
         self.assertFalse(self.endpoint.connected)
         d = self.factory.callRemote('spam')
         self.reactor.advance(10)
+        self.failureResultOf(d, defer.CancelledError)
+
+    def test_disconnect(self):
+        """
+        The disconnect method drops the current connection.
+        """
+        d = self.factory.notifyRemote('spam')
+        self.successResultOf(d)
+        self.assertIsNot(self.endpoint.transport, None)
+        self.factory.disconnect()
+        self.assertIs(self.endpoint.transport, None)
+        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
+
+    def test_disconnect_connection_cancellation(self):
+        """
+        The disconnect method cancels pending connections.
+        """
+        canceled = []
+        self.endpoint.deferred = defer.Deferred(canceled.append)
+        d = self.factory.notifyRemote('spam')
+        self.factory.disconnect()
+        self.assert_(canceled)
+        self.assertEqual(len(self.flushLoggedErrors(defer.CancelledError)), 1)
+        self.failureResultOf(d, defer.CancelledError)
+
+    def test_disconnect_callRemote_cancellation(self):
+        """
+        The disconnect method cancels pending callRemote Deferreds.
+        """
+        d = self.factory.callRemote('spam')
+        self.assertIsNot(self.endpoint.transport, None)
+        self.factory.disconnect()
+        self.assertIs(self.endpoint.transport, None)
+        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
         self.failureResultOf(d, defer.CancelledError)
