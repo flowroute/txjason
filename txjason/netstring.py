@@ -51,6 +51,7 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
         self.endpoint = endpoint
         self._proto = None
         self._waiting = []
+        self._notifyOnDisconnect = []
         self._connecting = False
         self._connectionDeferred = None
         self.reactor = reactor
@@ -87,6 +88,9 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
 
     def _lostProtocol(self, reason):
         log.err(reason, '%r disconnected' % (self,))
+        deferreds, self._notifyOnDisconnect = self._notifyOnDisconnect, []
+        for d in deferreds:
+            d.errback(reason)
         self._proto = None
         self.client.cancelRequests()
 
@@ -120,6 +124,11 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
             self._proto.transport.abortConnection()
         elif self._connecting:
             self._connectionDeferred.cancel()
+
+    def notifyDisconnect(self):
+        d = defer.Deferred()
+        self._notifyOnDisconnect.append(d)
+        return d
 
 
 class JSONRPCServerFactory(protocol.BaseServerFactory):

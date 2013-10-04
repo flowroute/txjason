@@ -329,3 +329,43 @@ class ClientTestCase(TXJasonTestCase):
         self.endpoint.deferred.errback(FakeError())
         self.failureResultOf(d, FakeError)
         self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
+
+    def test_notifyDisconnect(self):
+        """
+        The notifyDisconnect method returns a Deferred that fires when the
+        client has disconnected.
+        """
+        d = self.factory.notifyDisconnect()
+        self.successResultOf(self.factory.connect())
+        self.assertNoResult(d)
+        self.endpoint.disconnect(FakeDisconnectedError())
+        self.failureResultOf(d, FakeDisconnectedError)
+        self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 1)
+
+    def test_notifyDisconnect_after_connection(self):
+        """
+        The notifyDisconnect method returns a Deferred that fires when the
+        client has disconnected even if it's called after a connection is
+        established.
+        """
+        self.successResultOf(self.factory.connect())
+        d = self.factory.notifyDisconnect()
+        self.assertNoResult(d)
+        self.endpoint.disconnect(FakeDisconnectedError())
+        self.failureResultOf(d, FakeDisconnectedError)
+        self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 1)
+
+    def test_notifyDisconnect_after_disconnection(self):
+        """
+        notifyDisconnect doesn't return a fired Deferred if it's called after
+        disconnection but instead returns a Deferred that fires after the next
+        disconnection.
+        """
+        self.successResultOf(self.factory.connect())
+        self.endpoint.disconnect(FakeDisconnectedError())
+        d = self.factory.notifyDisconnect()
+        self.assertNoResult(d)
+        self.successResultOf(self.factory.connect())
+        self.endpoint.disconnect(FakeDisconnectedError())
+        self.failureResultOf(d, FakeDisconnectedError)
+        self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 2)
