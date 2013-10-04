@@ -29,6 +29,15 @@ class ClientTestCase(TXJasonTestCase):
         clock.advance(1)
         self.assertIsInstance(called[0], defer.CancelledError)
 
+    def test_timeout_argument(self):
+        called = []
+        payload, d = self.client.getRequest('foo', timeout=4)
+        d.addErrback(called.append)
+        clock.advance(3)
+        self.assertFalse(called)
+        clock.advance(1)
+        self.assertIsInstance(called[0].value, defer.CancelledError)
+
     def test_response(self):
         called = []
 
