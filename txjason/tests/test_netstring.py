@@ -292,3 +292,40 @@ class ClientTestCase(TXJasonTestCase):
         self.assertIs(self.endpoint.transport, None)
         self.assertEqual(len(self.flushLoggedErrors(FakeDisconnectedError)), 1)
         self.failureResultOf(d, defer.CancelledError)
+
+    def test_connect(self):
+        """
+        The connect method returns a Deferred that fires when the connection is
+        established.
+        """
+        self.endpoint.deferred = defer.Deferred()
+        d = self.factory.connect()
+        self.assertNoResult(d)
+        self.endpoint.deferred.callback(self.factory.buildProtocol(None))
+        self.successResultOf(d)
+
+    def test_connect_cancellation(self):
+        """
+        Cancelling the connect method's Deferred cancels the connection's
+        Deferred.
+        """
+        canceled = []
+        self.endpoint.deferred = defer.Deferred(canceled.append)
+        d = self.factory.connect()
+        self.assertNoResult(d)
+        d.cancel()
+        self.assert_(canceled)
+        self.failureResultOf(d, defer.CancelledError)
+        self.assertEqual(len(self.flushLoggedErrors(defer.CancelledError)), 1)
+
+    def test_connect_failure(self):
+        """
+        The connect method's Deferred errbacks if the connection itself
+        errbacks.
+        """
+        self.endpoint.deferred = defer.Deferred()
+        d = self.factory.connect()
+        self.assertNoResult(d)
+        self.endpoint.deferred.errback(FakeError())
+        self.failureResultOf(d, FakeError)
+        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)

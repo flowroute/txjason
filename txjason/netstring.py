@@ -112,6 +112,9 @@ class JSONRPCClientFactory(protocol.BaseClientFactory):
         connectionDeferred.addCallback(gotConnection)
         return connectionDeferred
 
+    def connect(self):
+        return self._getConnection().addCallback(lambda ign: None)
+
     def disconnect(self):
         if self._proto:
             self._proto.transport.abortConnection()
