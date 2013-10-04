@@ -51,8 +51,8 @@ class ClientTestCase(TXJasonTestCase):
         self.client.handleResponse(json.dumps(response))
         self.assertIsInstance(called[0], client.JSONRPCClientError)
 
-    def test_args_and_kwargs(self):
-        self.assertRaises(client.JSONRPCClientError, self.client.getRequest, 'foo', 1, bar='bar')
+    def test_unrecognized_kwargs(self):
+        self.assertRaises(TypeError, self.client.getRequest, bar='bar')
 
     def test_positional_params(self):
         payload, d = self.client.getRequest('foo', 1, 2, 3)
@@ -60,7 +60,7 @@ class ClientTestCase(TXJasonTestCase):
         self.checkPayload(payload, expected, d)
 
     def test_named_params(self):
-        payload, d = self.client.getRequest('foo', a=1, b=2)
+        payload, d = self.client.getRequest('foo', dict(a=1, b=2))
         expected = {'id': 1, 'jsonrpc': '2.0', 'method': 'foo', 'params': {'a': 1, 'b': 2}}
         self.checkPayload(payload, expected, d)
 
