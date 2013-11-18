@@ -1,4 +1,4 @@
-from twisted.internet import reactor, defer
+from twisted.internet import defer, endpoints, task
 from txjason.netstring import JSONRPCClientFactory
 from txjason.client import JSONRPCClientError
 
@@ -7,7 +7,10 @@ client = JSONRPCClientFactory('127.0.0.1', 7080)
 
 
 @defer.inlineCallbacks
-def stuff():
+def main(reactor, description):
+    endpoint = endpoints.clientFromString(reactor, description)
+    client = JSONRPCClientFactory(endpoint)
+
     try:
         r = yield client.callRemote('bar.foo')
     except JSONRPCClientError as e:
@@ -20,5 +23,4 @@ def stuff():
     print "whaomi result: %s" % str(r)
 
 
-reactor.callWhenRunning(stuff)
-reactor.run()
+task.react(main, ['tcp:127.0.0.1:7080'])
