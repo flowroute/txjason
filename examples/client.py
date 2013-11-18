@@ -3,9 +3,6 @@ from txjason.netstring import JSONRPCClientFactory
 from txjason.client import JSONRPCClientError
 
 
-client = JSONRPCClientFactory('127.0.0.1', 7080)
-
-
 @defer.inlineCallbacks
 def main(reactor, description):
     endpoint = endpoints.clientFromString(reactor, description)
