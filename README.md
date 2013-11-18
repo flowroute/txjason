@@ -97,9 +97,9 @@ d = client.callRemote('main.echo', 'foo')
 d.addBoth(someFunction)
 ```
 
-No connection step is necessary; ``JSONRPCClientFactory`` will automatically
-connect and reconnect when necessary. Disconnections are logged with twisted's
-logging system.
+No connection step is necessary;
+``JSONRPCClientFactory`` will automatically connect and reconnect when needed.
+Disconnections are logged with twisted's logging system.
 
 For a non-twisted/blocking JSON-RPC over Netstring client, try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
 
