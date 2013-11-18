@@ -9,7 +9,7 @@ client = JSONRPCClientFactory('127.0.0.1', 7080)
 @defer.inlineCallbacks
 def main(reactor, description):
     endpoint = endpoints.clientFromString(reactor, description)
-    client = JSONRPCClientFactory(endpoint)
+    client = JSONRPCClientFactory(endpoint, reactor=reactor)
 
     try:
         r = yield client.callRemote('bar.foo')

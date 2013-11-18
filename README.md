@@ -91,7 +91,7 @@ from txjason.netstring import JSONRPCClientFactory
 
 
 endpoint = endpoints.TCP4ClientEndpoint(reactor, '127.0.0.1', 7080)
-client = JSONRPCClientFactory(endpoint)
+client = JSONRPCClientFactory(endpoint, reactor=reactor)
 
 d = client.callRemote('main.echo', 'foo')
 d.addBoth(someFunction)
