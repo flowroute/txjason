@@ -83,13 +83,15 @@ factory.service.cancelPending()
 Client Usage
 ------------
 
-Assuming the reactor is running:
+Given a reactor ``reactor``:
 
 ```python
+from twisted.internet import endpoints
 from txjason.netstring import JSONRPCClientFactory
 
 
-client = JSONRPCClientFactory('127.0.0.1', 7080)
+endpoint = endpoints.TCP4ClientEndpoint(reactor, '127.0.0.1', 7080)
+client = JSONRPCClientFactory(endpoint)
 
 d = client.callRemote('main.echo', 'foo')
 d.addBoth(someFunction)
