@@ -20,7 +20,7 @@ def main(reactor, description):
     print "add result: %s" % str(r)
 
     r = yield client.callRemote('bar.whoami')
-    print "whaomi result: %s" % str(r)
+    print "whoami result: %s" % str(r)
 
 
 task.react(main, ['tcp:127.0.0.1:7080'])
