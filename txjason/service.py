@@ -83,6 +83,8 @@ Example:
 """
 import types
 import json
+
+from twisted.application import service
 from twisted.internet import defer, reactor
 from twisted.python import log
 
@@ -542,6 +544,36 @@ class JSONRPCService(object):
                          or params[key] is None):
                     raise InvalidParamsError(
                         'arg "{}" is the wrong type'.format(key))
+
+
+class JSONRPCClientService(service.Service):
+    def __init__(self, clientFactory):
+        self.clientFactory = clientFactory
+
+    def startService(self):
+        self.clientFactory.connect().addErrback(
+            log.err, 'error starting the JSON-RPC client service %r' % (self,))
+        service.Service.startService(self)
+
+    def stopService(self):
+        self.clientFactory.disconnect()
+        service.Service.stopService(self)
+
+    def callRemote(self, *a, **kw):
+        if not self.running:
+            return defer.fail(ServiceStopped())
+        return self.clientFactory.callRemote(*a, **kw)
+
+    def notifyRemote(self, *a, **kw):
+        if not self.running:
+            return defer.fail(ServiceStopped())
+        return self.clientFactory.notifyRemote(*a, **kw)
+
+
+class ServiceStopped(Exception):
+    """
+    A request was made of a stopped JSONRPCClientService.
+    """
 
 
 class JSONRPCError(Exception):
