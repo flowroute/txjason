@@ -5,17 +5,17 @@ txjason
 Description
 -----------
 
-An interface for writing jsonrpc 2.0 servers and clients in Twisted.
+An interface for writing JSON-RPC 2.0 servers and clients in Twisted.
 
 
 Features
 --------
 
-* jsonrpc 2.0 compliant (including batch operations for the server).
+* JSON-RPC 2.0 compliant (including batch operations for the server).
 
-* Support for TCP/netstring transport.
+* Support for [Netstrings](http://cr.yp.to/proto/netstrings.txt) over TCP transport. (HTTP is not supported)
 
-* Easily extensible for other transports.
+* Easily extensible for other transports, such as TLS, curvecp, websockets, etc.
 
 
 Server Usage
@@ -45,7 +45,7 @@ factory.addHandler(Example(), namespace='main')
 ```
 
 The factory can then be used in a .tac, twistd plugin, or anywhere else a server factory
-is normally found. The rpc methods will be exported as 'main.echo' and 'main.deferred_echo'.
+is normally found. The RPC methods will be exported as 'main.echo' and 'main.deferred_echo'.
 
 The server can be forced to serve a predefined exception by invoking the service's
 ``stopServing`` method, with the exception class to serve. If no exception class is passed,
@@ -80,6 +80,7 @@ At any time, all pending requests may be cancelled:
 factory.service.cancelPending()
 ```
 
+
 Client Usage
 ------------
 
@@ -99,9 +100,10 @@ d.addBoth(someFunction)
 
 No connection step is necessary;
 ``JSONRPCClientFactory`` will automatically connect and reconnect when needed.
-Disconnections are logged with twisted's logging system.
+Disconnections are logged with Twisted's logging system.
 
-For a non-twisted/blocking JSON-RPC over Netstring client, try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
+For a non-twisted/blocking JSON-RPC over Netstrings client, try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
+
 
 Running the Examples
 --------------------
@@ -111,3 +113,12 @@ To run the provided examples:
     * Run 'make' from the main project directory.
     * In one shell run ./bin/twistd -noy examples/server.tac
     * In another shell run ./bin/python examples/client.py
+
+
+txjason vs txjsonrpc
+--------------------
+
+Here some differences between txjason and [txjsonrpc](https://github.com/oubiwann/txjsonrpc):
+
+* txjason only supported JSON-RPC [version 2](http://www.jsonrpc.org/specification). txjsonrpc only supports JSON-RPC version 1.  
+* txjsonrpc supports JSON-RPC over HTTP as well as Netstrings. txjason only supports Netstrings.
