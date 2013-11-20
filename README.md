@@ -102,7 +102,8 @@ No connection step is necessary;
 ``JSONRPCClientFactory`` will automatically connect and reconnect when needed.
 Disconnections are logged with Twisted's logging system.
 
-For a non-twisted/blocking JSON-RPC over Netstrings client, try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
+For a non-twisted/blocking JSON-RPC over Netstrings client,
+try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
 
 
 Running the Examples
@@ -118,7 +119,9 @@ To run the provided examples:
 txjason vs txjsonrpc
 --------------------
 
-Here some differences between txjason and [txjsonrpc](https://github.com/oubiwann/txjsonrpc):
+Here are some differences between txjason and [txjsonrpc](https://github.com/oubiwann/txjsonrpc):
 
-* txjason only supported JSON-RPC [version 2](http://www.jsonrpc.org/specification). txjsonrpc only supports JSON-RPC version 1.  
-* txjsonrpc supports JSON-RPC over HTTP as well as Netstrings. txjason only supports Netstrings.
+* txjason only supports JSON-RPC [version 2](http://www.jsonrpc.org/specification).
+txjsonrpc only supports JSON-RPC version 1.  
+* txjsonrpc supports JSON-RPC over HTTP as well as Netstrings.
+txjason only supports Netstrings.
