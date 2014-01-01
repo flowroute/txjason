@@ -1,5 +1,6 @@
 import json
 from twisted.internet import defer, task
+from twisted.python.failure import Failure
 from txjason import service
 
 from common import TXJasonTestCase
@@ -312,3 +313,66 @@ class ServiceTestCase(TXJasonTestCase):
         yield self.makeRequest(request, expected)
         e = self.flushLoggedErrors(TypeError)
         self.assertTrue(e[0].check(TypeError))
+
+
+class FakeJSONRPCClientFactory(object):
+    def __init__(self, failure=None):
+        self.failure = failure
+        self.calls = []
+        self.connected = False
+
+    def connect(self):
+        self.connected = True
+        return defer.succeed(self.failure)
+
+    def disconnect(self):
+        self.connected = False
+
+    def callRemote(self, *a, **kw):
+        self.calls.append(('call', a, kw))
+        return defer.succeed(None)
+
+    def notifyRemote(self, *a, **kw):
+        self.calls.append(('notify', a, kw))
+        return defer.succeed(None)
+
+
+class FakeError(Exception):
+    pass
+
+
+class ClientServiceTests(TXJasonTestCase):
+    def setUp(self):
+        self.clientFactory = FakeJSONRPCClientFactory()
+        self.service = service.JSONRPCClientService(self.clientFactory)
+
+    def test_basic_operation(self):
+        self.service.startService()
+        d1 = self.service.callRemote('spam', 'eggs', spam='eggs')
+        d2 = self.service.notifyRemote('eggs', 'spam', eggs='spam')
+        self.assertEqual(self.clientFactory.calls, [
+            ('call', ('spam', 'eggs'), {'spam': 'eggs'}),
+            ('notify', ('eggs', 'spam'), {'eggs': 'spam'}),
+        ])
+        self.successResultOf(d1)
+        self.successResultOf(d2)
+
+    def test_connection_failures_get_logged(self):
+        self.clientFactory.failure = Failure(FakeError())
+        self.service.startService()
+        self.assertEqual(len(self.flushLoggedErrors(FakeError)), 1)
+
+    def test_connection_and_disconnection(self):
+        self.assertFalse(self.clientFactory.connected)
+        self.service.startService()
+        self.assertTrue(self.clientFactory.connected)
+        self.service.stopService()
+        self.assertFalse(self.clientFactory.connected)
+
+    def test_connection_check_on_callRemote(self):
+        d = self.service.callRemote('spam', 'eggs')
+        self.failureResultOf(d, service.ServiceStopped)
+
+    def test_connection_check_on_notifyRemote(self):
+        d = self.service.notifyRemote('spam', 'eggs')
+        self.failureResultOf(d, service.ServiceStopped)

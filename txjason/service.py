@@ -83,6 +83,8 @@ Example:
 """
 import types
 import json
+
+from twisted.application import service
 from twisted.internet import defer, reactor
 from twisted.python import log
 
@@ -542,6 +544,55 @@ class JSONRPCService(object):
                          or params[key] is None):
                     raise InvalidParamsError(
                         'arg "{}" is the wrong type'.format(key))
+
+
+class JSONRPCClientService(service.Service):
+    """
+    A service that manages a JSONRPCClientFactory.
+
+    Starting and stopping this service connects and disconnects the underlying
+    JSONRPCClientFactory.
+    """
+
+    def __init__(self, clientFactory):
+        self.clientFactory = clientFactory
+
+    def startService(self):
+        """
+        Start the service and connect the JSONRPCClientFactory.
+        """
+        self.clientFactory.connect().addErrback(
+            log.err, 'error starting the JSON-RPC client service %r' % (self,))
+        service.Service.startService(self)
+
+    def stopService(self):
+        """
+        Stop the service and disconnect the JSONRPCClientFactory.
+        """
+        self.clientFactory.disconnect()
+        service.Service.stopService(self)
+
+    def callRemote(self, *a, **kw):
+        """
+        Make a callRemote request of the JSONRPCClientFactory.
+        """
+        if not self.running:
+            return defer.fail(ServiceStopped())
+        return self.clientFactory.callRemote(*a, **kw)
+
+    def notifyRemote(self, *a, **kw):
+        """
+        Make a notifyRemote request of the JSONRPCClientFactory.
+        """
+        if not self.running:
+            return defer.fail(ServiceStopped())
+        return self.clientFactory.notifyRemote(*a, **kw)
+
+
+class ServiceStopped(Exception):
+    """
+    A request was made of a stopped JSONRPCClientService.
+    """
 
 
 class JSONRPCError(Exception):
