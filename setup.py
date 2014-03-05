@@ -7,6 +7,7 @@ setup(name='txjason',
       description='Twisted jsonrpc 2.0 module',
       author='Flowroute LLC',
       author_email='matthew@flowroute.com',
+      url='https://github.com/flowroute/txjason',
       packages=['txjason'],
       install_requires=[],
 )
