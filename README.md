@@ -119,6 +119,12 @@ Then run the client:
     python examples/client.py
 
 
+Running the Tests
+-----------------
+
+    trial txjason.tests
+
+
 txjason vs txjsonrpc
 --------------------
 
