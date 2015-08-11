@@ -109,11 +109,20 @@ try [jsonrpc-ns](https://github.com/flowroute/jsonrpc-ns)
 Running the Examples
 --------------------
 
-To run the provided examples:
+To run the provided examples,
+first start the example server in a shell:
 
-    * Run 'make' from the main project directory.
-    * In one shell run ./bin/twistd -noy examples/server.tac
-    * In another shell run ./bin/python examples/client.py
+    twistd -noy examples/server.tac
+
+Then run the client:
+
+    python examples/client.py
+
+
+Running the Tests
+-----------------
+
+    trial txjason.tests
 
 
 txjason vs txjsonrpc
@@ -122,6 +131,6 @@ txjason vs txjsonrpc
 Here are some differences between txjason and [txjsonrpc](https://github.com/oubiwann/txjsonrpc):
 
 * txjason only supports JSON-RPC [version 2](http://www.jsonrpc.org/specification).
-txjsonrpc only supports JSON-RPC version 1.  
+txjsonrpc only supports JSON-RPC version 1.
 * txjsonrpc supports JSON-RPC over HTTP as well as Netstrings.
 txjason only supports Netstrings.
